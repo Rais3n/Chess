@@ -5,10 +5,16 @@ using namespace sf;
 
 square::square(float x, float y)
 {
+	shape.setOrigin(squareLenght / 2.f, squareLenght / 2.f);
 	shape.setPosition(x, y);
 	shape.setSize( {  squareLenght, squareLenght } );
 	shape.setFillColor(Color{ 0, 200, 0, 205 });
-	shape.setOrigin(squareLenght / 2.f, squareLenght / 2.f);
+	
+	circle.setOrigin(Radius,Radius);
+	circle.setPosition(x, y);
+	circle.setRadius(Radius);
+	circle.setFillColor(Color::Black);
+	
 }
 
 void square::changeColor()

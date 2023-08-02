@@ -21,14 +21,20 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-            game.move(window, event);
+            //game.move(window, event);
+            game.possibleMoves(window, event);
+            
+            
         }
         window.clear();
         game.Board(window);
         if(game.Started)
-        game.prepareGame(window);
+            game.prepareGame(window);
         else
-        game.update(window);
+        {
+            
+            game.update(window);
+        }
         window.display();
     }
 

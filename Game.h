@@ -12,10 +12,10 @@ public:
 	void prepareGame(RenderWindow& window);
 	Game();
 	void Board(RenderWindow& window);
-	void move(RenderWindow& window, Event&);
+	void move(RenderWindow& window,Event &event);
 	bool Started=true;
 	void update(RenderWindow&);
-	void movePiece();
+	void possibleMoves(RenderWindow&, Event&);
 private:
 	void takePlace(int,pieces);
 	bool isDragging = false;
@@ -23,7 +23,10 @@ private:
 	pieces wPieces[16];
 	pieces bPieces[16];
 	vector <square> squares;
-	int whichField(RenderWindow&);
-	void possibleMoves(RenderWindow&);
+	int whichField(RenderWindow&,Event&);
+	
+	vector <unsigned> moves;
+	unsigned blackMove = 0;							//0-white, 1-black
+
 };
 
