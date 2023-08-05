@@ -16,6 +16,7 @@ public:
 	bool Started=true;
 	void update(RenderWindow&);
 	void possibleMoves(RenderWindow&, Event&);
+	void grabPiece(RenderWindow&);
 private:
 	void takePlace(int,pieces);
 	bool isDragging = false;

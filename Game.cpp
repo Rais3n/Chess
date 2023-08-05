@@ -79,7 +79,7 @@ void Game::takePlace(int place, pieces figure)
 int Game::whichField(RenderWindow& window, Event& event)
 {	
 	Vector2i mousePos = Mouse::getPosition(window);
-	if ((Mouse::isButtonPressed(Mouse::Left)|| event.type==Event::MouseButtonReleased) && mousePos.x >= 100 && mousePos.x <= 500 && mousePos.y >= 100 && mousePos.y <= 500)
+	if ((Mouse::isButtonPressed(Mouse::Left)|| event.type==Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) && mousePos.x >= 100 && mousePos.x <= 500 && mousePos.y >= 100 && mousePos.y <= 500)
 	{
 		int m = (mousePos.x - 100) / 50 + (mousePos.y - 100) / 50 * 8;
 		return m;
@@ -95,11 +95,23 @@ void Game::possibleMoves(RenderWindow& window, Event& event)
 	{
 		if (event.mouseButton.button == Mouse::Left)
 		{
-			int m = whichField(window,event); //which field mouse 
-			if (squares[m].isTaken && squares[m].figure->player == blackMove && !isDragging)
+			int m = whichField(window, event); //which field mouse 
+			if (field != nullptr && squares[m].permission == false)
+			{
+				for (unsigned& move : moves)
+				{
+					squares[move].permission = false;
+				}
+				moves.clear();
+				if (squares[m].isTaken == false)
+					field = nullptr;
+			}
+
+
+			if (!isDragging && squares[m].isTaken && squares[m].figure->player == blackMove)
 			{
 				cout << "d";
-				
+
 				char piece = squares[m].figure->piece;
 				int player = squares[m].figure->player;
 				int column = m % 8;                          // from 0 to 7
@@ -340,7 +352,7 @@ void Game::possibleMoves(RenderWindow& window, Event& event)
 				{
 					squares[move].permission = true;
 				}
-				if(!moves.empty())
+				if (!moves.empty())
 					field = &squares[m];
 			}
 
@@ -355,11 +367,12 @@ void Game::possibleMoves(RenderWindow& window, Event& event)
 				isDragging = true;
 		}
 
-		else if (event.type == sf::Event::MouseButtonReleased)
+		else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left)
 		{
+
 			//cout << "cos nie tak";
 			isDragging = false;
-			int m = whichField(window,event);
+			int m = whichField(window, event);
 			cout << "m wynosi: " << m << endl;
 			if (squares[m].permission)
 			{
@@ -378,25 +391,47 @@ void Game::possibleMoves(RenderWindow& window, Event& event)
 					blackMove = 1;
 				else
 					blackMove = 0;
+
 			}
 			else
 				field->figure->setPos(field->getPosition());
 		}
-		if (isDragging)
-		{
-			Vector2i mousePos = Mouse::getPosition(window);
-			int x = mousePos.x;
-			int y = mousePos.y;
-			int m = (y - 100) / 50 * 8 + (x - 100) / 50;
-			float xx = float(mousePos.x);
-			float yy = float(mousePos.y);
-			field->figure->setPos({ xx,yy });
-		}
+
+
+
+		//	
+		//	/*if (isDragging)
+		//	{
+		//		Vector2i mousePos = Mouse::getPosition(window);
+		//		int x = mousePos.x;
+		//		int y = mousePos.y;
+		//		int m = (y - 100) / 50 * 8 + (x - 100) / 50;
+		//		float xx = float(mousePos.x);
+		//		float yy = float(mousePos.y);
+		//		field->figure->setPos({ xx,yy });
+		//	}*/
+		//}
+
+
+
 	}
-
-	
-
 }
+
+void Game::grabPiece(RenderWindow& window)
+{
+	if(field!=nullptr)
+	if (isDragging)
+	{
+		Vector2i mousePos = Mouse::getPosition(window);
+		int x = mousePos.x;
+		int y = mousePos.y;
+		float xx = float(mousePos.x);
+		float yy = float(mousePos.y);
+		field->figure->setPos({ xx,yy });
+	}
+}
+
+
 
 
 void Game::move(RenderWindow &window, Event &event)

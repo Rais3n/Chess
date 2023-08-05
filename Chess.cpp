@@ -12,7 +12,7 @@ int main()
 {
     sf::RenderWindow window(sf::VideoMode(600, 600), "Chess");
     Game game;
-
+    
 
     while (window.isOpen())
     {
@@ -32,7 +32,7 @@ int main()
             game.prepareGame(window);
         else
         {
-            
+            game.grabPiece(window);
             game.update(window);
         }
         window.display();
