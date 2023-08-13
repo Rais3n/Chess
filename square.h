@@ -19,6 +19,7 @@ public:
 	friend class Game;
 private:
 	RectangleShape shape;
+	CircleShape dot;
 	CircleShape circle;
 	const float squareLenght{ 50.0f };
 	void draw(RenderTarget& target, RenderStates state) const override;

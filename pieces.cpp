@@ -41,6 +41,11 @@ void pieces::setTexture()
 	}
 }
 
+void pieces::scale(Vector2f dim)
+{
+	figure.setScale(dim);
+}
+
 
 
 void pieces::setPieces(char letter, int player, int place)
