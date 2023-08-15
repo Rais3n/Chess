@@ -19,7 +19,10 @@ public:
 	void drag(Event&);
 	void stopdrag(RenderWindow&, Event&);
 private:
+	bool isSafe(int m);
 	void takePlace(int,pieces);
+	int attacker1 = 64;
+	int attacker2 = 64;
 	bool isDragging = false;
 	square* field = nullptr;
 	pieces wPieces[16];

@@ -74,6 +74,256 @@ void Game::Board(RenderWindow &window)
 	}
 }
 
+bool Game::isSafe(int m)						// position of piece that I want to move
+{
+	int q, columnK, rowK, column, row;			// q - king position
+	column = m % 8;
+	row = m / 8;
+	if (blackMove)
+	{
+		q = bPieces[4].place;
+		columnK = bPieces[4].place % 8;
+		rowK = bPieces[4].place / 8;
+	}
+	else
+	{
+		q = wPieces[4].place;
+		columnK = wPieces[4].place % 8;
+		rowK = wPieces[4].place / 8;
+	}
+
+	if (abs(column-columnK)==abs(row-rowK) && abs(m - q) % 7 == 0)
+	{
+		int x;
+		int dis = abs(column - columnK); //dis - distance
+		if (q < m)
+			x = 1;
+		else
+			x = -1;
+		int i;
+		for (i = 1; i<dis ;i++)
+		{
+			if (squares[q + 7 * i * x].isTaken)
+				break;
+		}
+		if (i == dis)
+		{
+			int min;
+			int temp = q + 7 * i * x;
+			column = (q + 7 * i * x) % 8;
+			row = (q + 7 * i * x) / 8;
+			if (q < m)
+			{
+				if (column < 7 - row)
+					min = column;
+				else
+					min = 7 - row;
+			}
+			else
+			{
+				if (7 - column < row)
+					min = 7 - column;
+				else
+					min = row;
+			}
+			for (i = 1; i <= min; i++)
+			{
+				if (squares[temp + i * 7 * x].isTaken)
+					if (squares[temp + i * 7 * x].figure->player != blackMove &&
+						(squares[temp + i * 7 * x].figure->piece == 'b' || squares[temp + i * 7 * x].figure->piece == 'q'))
+					{
+						if (squares[m].figure->piece == 'b' || squares[m].figure->piece == 'q')
+						{
+							min = (q - (temp + i * 7 * x)) % 8;
+							int j;
+							for (j = 1; j < min; j++)
+								moves.emplace_back(q + j * 7 * x);
+							enemies.emplace_back(q + j * 7 * x);
+						}
+						else if (squares[m].figure->piece == 'p')
+						{
+							if (m + 7 == temp + i * 7 * x && blackMove)
+								enemies.emplace_back(m + 7);
+							else if (m - 7 == temp + i * 7 * x && blackMove == 0)
+								enemies.emplace_back(m - 7);
+							
+						}
+							
+						return false;
+					}
+					else return true;
+			}
+		}
+		else if (squares[q + 7 * i * x].figure->player != blackMove &&
+			(squares[q + 7 * i * x].figure->piece == 'b' || squares[q + 7 * i * x].figure->piece == 'q'))
+			return false;
+		else return true;
+
+	}
+	else if (abs(column - columnK) == abs(row - rowK) && abs(m - q) % 9 == 0)
+	{
+		int x;
+		int dis = abs(column - columnK); //dis - distance
+		if (q < m)
+			x = 1;
+		else
+			x = -1;
+		int i;
+		for (i = 1; i < dis; i++)
+		{
+			if (squares[q + 9 * i * x].isTaken)
+				break;
+		}
+		if (i == dis)
+		{
+			int min;
+			int temp = q + 9 * i * x;		// = m
+			column = (q + 9 * i * x) % 8;
+			row = (q + 9 * i * x) / 8;
+			if (q < m)
+			{
+				if (7 - column < 7 - row)
+					min = 7 - column;
+				else
+					min = 7 - row;
+			}
+			else
+			{
+				if (column < row)
+					min = column;
+				else
+					min = row;
+			}
+			for (i = 1; i <= min; i++)
+			{
+				if (squares[temp + i * 9 * x].isTaken)
+					if (squares[temp + i * 9 * x].figure->player != blackMove &&
+						(squares[temp + i * 9 * x].figure->piece == 'b' || squares[temp + i * 9 * x].figure->piece == 'q'))
+					{
+						if (squares[m].figure->piece == 'b' || squares[m].figure->piece == 'q')
+						{
+							min = (q - (temp + i * 9 * x)) % 8;
+							int j;
+							for (j = 1; j < min; j++)
+								moves.emplace_back(q + j * 9 * x);
+							enemies.emplace_back(q + j * 9 * x);
+						}
+						else if (squares[m].figure->piece == 'p')
+						{
+							if (m + 9 == temp + i * 9 * x && blackMove)
+								enemies.emplace_back(m + 9);
+							else if (m - 9 == temp + i * 9 * x && blackMove == 0)
+								enemies.emplace_back(m - 9);
+
+						}
+
+						return false;
+					}
+					else return true;
+			}
+		}
+		else if (squares[q + 7 * i * x].figure->player != blackMove &&
+			(squares[q + 7 * i * x].figure->piece == 'b' || squares[q + 7 * i * x].figure->piece == 'q'))
+			return false;
+		else return true;
+	}
+	else if (column==columnK)
+	{
+		column = m % 8;
+		row = m / 8;
+		int dis = abs(rowK - row);
+		int x;
+		if (row > rowK)
+			x = 1;
+		else x = -1;
+		int i;
+		for (i = 1; i < dis; i++)
+		{
+			if (squares[q + 8 * i * x].isTaken)
+				break;
+		}
+
+		if (i == dis)
+		{
+			int max;
+			if (q > m)
+				max = row;
+			else max = 7 - row;
+			for (int j = 1; j <= max; j++)
+			{
+				if (squares[m + 8 * j * x].isTaken)
+				{
+					if (squares[m + 8 * j * x].figure->player != blackMove &&
+						(squares[m + 8 * j * x].figure->piece == 'r' || squares[m + 8 * j * x].figure->piece == 'q'))
+						if (squares[m].figure->piece == 'p')
+							return true;
+						else if (squares[m].figure->piece == 'r' || squares[m].figure->piece == 'q')
+						{
+
+							for (int k = 1; k < dis; k++)
+								moves.emplace_back(q + 8 * k * x);
+							for (int l = 1; l < j; l++)
+								moves.emplace_back(m + 8 * l * x);
+							enemies.emplace_back(m + 8 * j * x);
+							return false;
+						}
+						else return false;
+
+				}
+			}
+		}
+		else if (squares[q + 8 * i * x].figure->player != blackMove &&
+			(squares[q + 8 * i * x].figure->piece == 'r' || squares[q + 8 * i * x].figure->piece == 'q'))
+			return false;
+		else return true;
+
+
+	}
+	else if (row == rowK)
+	{
+		int x;
+		if (column > columnK)
+			x = 1;
+		else x = -1;
+		int i;
+		int dis = abs(m - q);
+		for (i = 1; i < dis; i++)
+			if (squares[q + i*x].isTaken)
+				break;
+		if (i == dis)
+		{
+			int max;
+			if (m > q)
+				max = 7 - column;
+			else max = column;
+			for (int j = 1; j <= max; j++)
+				if (squares[m + j * x].isTaken)
+				{
+					if (squares[m + j * x].figure->player != blackMove && (squares[m + j * x].figure->piece == 'r' || squares[m + j * x].figure->piece == 'q'))
+					{
+						if (squares[m].figure->piece == 'r' || squares[m + j * x].figure->piece == 'q')
+						{
+							for (int k = 1; k < dis; k++)
+								moves.emplace_back(q + k * x);
+							for (int k = 1; k < max; k++)
+								moves.emplace_back(m + k * x);
+							enemies.emplace_back(m + j * x);
+
+						}
+						return false;
+					}
+					return true;
+				}
+		}
+		else if (squares[q + i * x].figure->player != blackMove &&
+			(squares[q + i * x].figure->piece == 'r' || squares[q + i * x].figure->piece == 'q'))
+			return false;
+		else return true;
+	}
+
+	return true;
+}
+
 void Game::takePlace(int place, pieces figure)
 {
 	squares[place].isTaken = true;
@@ -104,6 +354,8 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 		{
 			squares[move].permission = false;
 		}
+		for (unsigned& e : enemies)
+			squares[e].permission = false;
 		moves.clear();
 		enemies.clear();
 		if (squares[m].isTaken == false || squares[m].figure->player != blackMove)
@@ -119,7 +371,9 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 				int column = m % 8;                          // from 0 to 7
 				int row = m / 8;                             // from 0 to 7
 
-				if (piece == 'p')
+
+				
+				if (piece == 'p'&& !doubleCheck && isSafe(m))
 				{
 					if (squares[m].figure->player == 0)
 					{
@@ -136,9 +390,11 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 							if (squares[m - 8 + 1].figure!=nullptr && squares[m - 8 + 1].figure->player == 1)
 								enemies.emplace_back(m - 8 + 1);
 						}
-						else if(column==0)
+						else if (column == 0)
+						{
 							if (squares[m - 8 + 1].figure != nullptr && squares[m - 8 + 1].figure->player == 1)
 								enemies.emplace_back(m - 8 + 1);
+						}
 						else if(column==7)
 							if (squares[m - 8 - 1].figure != nullptr && squares[m - 8 - 1].figure->player == 1)
 								enemies.emplace_back(m - 8 - 1);
@@ -161,14 +417,16 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 								enemies.emplace_back(m + 8 + 1);
 						}
 						else if (column == 0)
-							if (squares[m + 8 + 1].figure!=nullptr && squares[m + 8 + 1].figure->player == 0)
+						{
+							if (squares[m + 8 + 1].figure != nullptr && squares[m + 8 + 1].figure->player == 0)
 								enemies.emplace_back(m + 8 + 1);
+						}
 						else if (column == 7)
 							if (squares[m + 8 - 1].figure!=nullptr && squares[m + 8 - 1].figure->player == 0)
 								enemies.emplace_back(m + 8 - 1);
 					}
 				}
-				else if (piece == 'k')
+				else if (piece == 'k' && !doubleCheck && isSafe(m))
 				{
 					if (column >= 2)
 					{
@@ -225,7 +483,7 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 
 
 				}
-				else if (piece == 'b')
+				else if (piece == 'b' && !doubleCheck && isSafe(m))
 				{
 					int min;
 
@@ -288,7 +546,7 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 					}
 
 				}
-				else if (piece == 'q')
+				else if (piece == 'q' && !doubleCheck && isSafe(m))
 				{
 					int min;
 
@@ -394,7 +652,7 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 						else break;
 					}
 				}
-				else if (piece == 'r')
+				else if (piece == 'r' && !doubleCheck && isSafe(m))
 				{
 					for (int i = m - 1; i >= m - column; i--)
 					{
@@ -442,7 +700,7 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 					}
 
 				}
-				else //King 'K'
+				else if(piece == 'K')
 				{
 					if (row >= 1)
 					{
@@ -488,24 +746,48 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 						enemies.emplace_back(m + 1);
 					if(noPerm.empty())
 						block(m);
-					//castling();
+					castling();
 				}
 
 				for (unsigned& move : moves)
-				{
+				{					
 					squares[move].permission = true;
 				}
-				if(!enemies.empty())
+				if (check)
+				{
+					for (auto& d : dangerPath)
+						squares[d].permission = false;
+					if(squares[m].figure->piece != 'K')
+					for (unsigned& move : moves)
+					{
+						if (squares[move].permission)
+							squares[move].permission = false;
+						else
+							squares[move].permission = true;
+					}
+				}
+
 					for (unsigned& e : enemies)
 					{
-						squares[e].permission = true;
+						if (check && squares[m].figure->piece != 'K')
+						{
+							if (e == attacker1)
+							{
+								squares[e].permission = true;
+							}
+						}
+						else
+						{
+							squares[e].permission = true;
+						}
+							
 					}
+
 				if (squares[m].figure->piece == 'K')
 					for (int& p : noPerm)
 					{
 						squares[p].permission = false;
 					}
-				//if (!moves.empty()||!enemies.empty())
 				if(squares[m].isTaken)
 					field = &squares[m];
 	}
@@ -630,7 +912,7 @@ void Game::takeDown(int m)
 	}
 }
 
-void Game::castling() // consider
+void Game::castling() // think over
 {
 	if (blackMove && (LCB || RCB))
 	{
@@ -686,6 +968,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p + 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 7 * j);
 									break;
 								}
 								else
@@ -700,6 +985,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p - 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 7 * j);
 									break;
 								}
 								else
@@ -718,6 +1006,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p + 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 9 * i);
 									break;
 								}
 								else
@@ -732,6 +1023,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p - 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 9 * j);
 									break;
 								}
 								else
@@ -757,6 +1051,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p + 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 7 * j);
 									break;
 								}
 								else
@@ -771,6 +1068,11 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p - 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 7 * j);
+									if (j != 1)
+										noPerm.emplace_back(q + 7);
 									break;
 								}
 								else
@@ -789,6 +1091,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p + 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 9 * i);
 									break;
 								}
 								else
@@ -803,6 +1108,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 								if (p - 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 9 * j);
 									break;
 								}
 								else
@@ -818,35 +1126,50 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (q > p)
 				{
-					for (int i = p; i <= q; i++)
+					int i;
+					for (i = p + 1; i < q; i++)
 					{
 						if (squares[i].isTaken && i != q)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p + 1; j < q; j++)
+							dangerPath.emplace_back(j);
+					}
 				}
 				else
 				{
-					for (int i = p; i >= q; i--)
+					int i;
+					for (i = p - 1; i > q; i--)
 					{
-						if (squares[i].isTaken && i != q)
+						if (squares[i].isTaken)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p - 1; j > q; j--)
+							dangerPath.emplace_back(j);
+
+					}
 				}
 			}
 			else if (column == columnK)
 			{
 				if (q > p)
 				{
+
 					for (int i = 1; p + 8 * i <= 63; i++)
 					{
 						if (squares[p + 8 * i].isTaken)
 							if (p + 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p + 8 * j);
 								break;
 							}
 							else
@@ -861,6 +1184,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 							if (p - 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p - 8 * j);
 								break;
 							}
 							else
@@ -875,16 +1201,24 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				if (columnK > column)
 				{
 					if (p + 10 == q)
+					{
 						check = true;
+					}
 					else if (p + 17 == q)
+					{
 						check = true;
+					}
 				}
 				else if (columnK < column)
 				{
 					if (p + 6 == q)
+					{
 						check = true;
+					}
 					else if (p + 15 == q)
+					{
 						check = true;
+					}
 				}
 			}
 			else if (rowK < row)
@@ -892,16 +1226,24 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				if (columnK > column)
 				{
 					if (p - 6 == q)
+					{
 						check = true;
+					}
 					else if (p - 15 == q)
+					{
 						check = true;
+					}
 				}
 				else if (columnK < column)
 				{
 					if (p - 10 == q)
+					{
 						check = true;
+					}
 					else if (p - 17 == q)
+					{
 						check = true;
+					}
 				}
 			}
 			break;
@@ -910,35 +1252,50 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (q > p)
 				{
-					for (int i = p; i <= q; i++)
+					int i;
+					for (i = p + 1; i < q; i++)
 					{
 						if (squares[i].isTaken && i != q)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p + 1; j < q; j++)
+							dangerPath.emplace_back(j);
+					}
 				}
 				else
 				{
-					for (int i = p; i >= q; i--)
+					int i;
+					for (i = p - 1; i > q; i--)
 					{
-						if (squares[i].isTaken && i != q)
+						if (squares[i].isTaken)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p - 1; j > q; j--)
+							dangerPath.emplace_back(j);
+						
+					}
 				}
 			}
 			else if (column == columnK)
 			{
 				if (q > p)
 				{
+					
 					for (int i = 1; p + 8 * i <= 63 ; i++)
 					{
 						if (squares[p + 8 * i].isTaken)
 							if (p + 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p + 8 * j);
 								break;
 							}
 							else
@@ -953,6 +1310,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 							if (p - 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p - 8 * j);
 								break;
 							}
 							else
@@ -966,7 +1326,9 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 
 				if (p + 7 == q || p + 9 == q)
+				{
 					check = true;
+				}
 			}
 			break;
 		}
@@ -983,14 +1345,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (abs(p - q) % 7 == 0)
 				{
-					if (q < p)
+					if (q > p)
 					{
-						for (int i = 1; p - 7 * i >= 0; i++)
+						for (int i = 1; p + 7 * i <= 63; i++)
 						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
+							if (squares[p + 7 * i].isTaken)
+								if (p + 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 7 * j);
 									break;
 								}
 								else
@@ -999,12 +1364,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 					}
 					else
 					{
-						for (int i = 1; p + 7 * i <= 63; i++)
+						for (int i = 1; p - 7 * i >= 0; i++)
 						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
+							if (squares[p - 7 * i].isTaken)
+								if (p - 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 7 * j);
+									if (j != 1)
+										noPerm.emplace_back(q + 7);
 									break;
 								}
 								else
@@ -1015,14 +1385,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				}
 				else if (abs(p - q) % 9 == 0)
 				{
-					if (q < p)
+					if (q > p)
 					{
-						for (int i = 1; p - 9 * i >= 0; i++)
+						for (int i = 1; p + 9 * i <= 63; i++)
 						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
+							if (squares[p + 9 * i].isTaken)
+								if (p + 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 9 * i);
 									break;
 								}
 								else
@@ -1031,12 +1404,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 					}
 					else
 					{
-						for (int i = 1; p + 9 * i <= 63; i++)
+						for (int i = 1; p - 9 * i >= 0; i++)
 						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
+							if (squares[p - 9 * i].isTaken)
+								if (p - 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 9 * j);
+									if (j != 1)
+										noPerm.emplace_back(q + 9);
 									break;
 								}
 								else
@@ -1054,14 +1432,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (abs(p - q) % 7 == 0)
 				{
-					if (q < p)
+					if (q > p)
 					{
-						for (int i = 1; p - 7 * i >= 0; i++)
+						for (int i = 1; p + 7 * i <= 63; i++)
 						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
+							if (squares[p + 7 * i].isTaken)
+								if (p + 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 7 * j);
 									break;
 								}
 								else
@@ -1070,12 +1451,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 					}
 					else
 					{
-						for (int i = 1; p + 7 * i <= 63; i++)
+						for (int i = 1; p - 7 * i >= 0; i++)
 						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
+							if (squares[p - 7 * i].isTaken)
+								if (p - 7 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 7 * j);
+									if (j != 1)
+										noPerm.emplace_back(q + 7);
 									break;
 								}
 								else
@@ -1086,14 +1472,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				}
 				else if (abs(p - q) % 9 == 0)
 				{
-					if (q < p)
+					if (q > p)
 					{
-						for (int i = 1; p - 9 * i >= 0; i++)
+						for (int i = 1; p + 9 * i <= 63; i++)
 						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
+							if (squares[p + 9 * i].isTaken)
+								if (p + 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p + 9 * i);
 									break;
 								}
 								else
@@ -1102,12 +1491,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 					}
 					else
 					{
-						for (int i = 1; p + 9 * i <= 63; i++)
+						for (int i = 1; p - 9 * i >= 0; i++)
 						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
+							if (squares[p - 9 * i].isTaken)
+								if (p - 9 * i == q)
 								{
 									check = true;
+									int j;
+									for (j = 1; j < i; j++)
+										dangerPath.emplace_back(p - 9 * j);
+									if (j != 1)
+										noPerm.emplace_back(q + 9);
 									break;
 								}
 								else
@@ -1123,35 +1517,52 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (q > p)
 				{
-					for (int i = p; i <= q; i++)
+					int i;
+					for (i = p + 1; i < q; i++)
 					{
 						if (squares[i].isTaken && i != q)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p + 1; j < q; j++)
+							dangerPath.emplace_back(j);
+					}
 				}
 				else
 				{
-					for (int i = p; i >= q; i--)
+					int i;
+					for (i = p - 1; i > q; i--)
 					{
-						if (squares[i].isTaken && i != q)
+						if (squares[i].isTaken)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p - 1; j > q; j--)
+							dangerPath.emplace_back(j);
+						if (p - 1 != q)
+							noPerm.emplace_back(q + 1);
+
+					}
 				}
 			}
 			else if (column == columnK)
 			{
-				if (q < p)
+				if (q > p)
 				{
-					for (int i = 1; p - 8 * i >= 0; i++)
+
+					for (int i = 1; p + 8 * i <= 63; i++)
 					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
+						if (squares[p + 8 * i].isTaken)
+							if (p + 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p + 8 * j);
 								break;
 							}
 							else
@@ -1160,12 +1571,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				}
 				else
 				{
-					for (int i = 1; p + 8 * i <= 63; i++)
+					for (int i = 1; p - 8 * i >= 0; i++)
 					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
+						if (squares[p - 8 * i].isTaken)
+							if (p - 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p - 8 * j);
+								if (j != 1)
+									noPerm.emplace_back(q + 8);
 								break;
 							}
 							else
@@ -1175,38 +1591,54 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			}
 			break;
 		case 'k':
-			if (rowK < row)
-			{
-				if (columnK > column)
-				{
-					if (p - 6 == q)
-						check = true;
-					else if (p - 15 == q)
-						check = true;
-				}
-				else if (columnK < column)
-				{
-					if (p - 10 == q)
-						check = true;
-					else if (p - 17 == q)
-						check = true;
-				}
-			}
-			else if (rowK > row)
+			if (rowK > row)
 			{
 				if (columnK > column)
 				{
 					if (p + 10 == q)
+					{
 						check = true;
+					}
 					else if (p + 17 == q)
+					{
 						check = true;
+					}
 				}
 				else if (columnK < column)
 				{
 					if (p + 6 == q)
+					{
 						check = true;
+					}
 					else if (p + 15 == q)
+					{
 						check = true;
+					}
+				}
+			}
+			else if (rowK < row)
+			{
+				if (columnK > column)
+				{
+					if (p - 6 == q)
+					{
+						check = true;
+					}
+					else if (p - 15 == q)
+					{
+						check = true;
+					}
+				}
+				else if (columnK < column)
+				{
+					if (p - 10 == q)
+					{
+						check = true;
+					}
+					else if (p - 17 == q)
+					{
+						check = true;
+					}
 				}
 			}
 			break;
@@ -1215,35 +1647,52 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 				if (q > p)
 				{
-					for (int i = p; i <= q; i++)
+					int i;
+					for (i = p + 1; i < q; i++)
 					{
 						if (squares[i].isTaken && i != q)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p + 1; j < q; j++)
+							dangerPath.emplace_back(j);
+					}
 				}
 				else
 				{
-					for (int i = p; i >= q; i--)
+					int i;
+					for (i = p - 1; i > q; i--)
 					{
-						if (squares[i].isTaken && i != q)
+						if (squares[i].isTaken)
 							break;
 					}
-					if (p == q)
+					if (i == q)
+					{
 						check = true;
+						for (int j = p - 1; j > q; j--)
+							dangerPath.emplace_back(j);
+						if (p - 1 != q)
+							noPerm.emplace_back(q + 1);
+
+					}
 				}
 			}
 			else if (column == columnK)
 			{
-				if (q < p)
+				if (q > p)
 				{
-					for (int i = 1; p - 8 * i >= 0; i++)
+
+					for (int i = 1; p + 8 * i <= 63; i++)
 					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
+						if (squares[p + 8 * i].isTaken)
+							if (p + 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p + 8 * j);
 								break;
 							}
 							else
@@ -1252,12 +1701,17 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 				}
 				else
 				{
-					for (int i = 1; p + 8 * i <= 63; i++)
+					for (int i = 1; p - 8 * i >= 0; i++)
 					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
+						if (squares[p - 8 * i].isTaken)
+							if (p - 8 * i == q)
 							{
 								check = true;
+								int j;
+								for (j = 1; j < i; j++)
+									dangerPath.emplace_back(p - 8 * j);
+								if (j != 1)
+									noPerm.emplace_back(q + 8);
 								break;
 							}
 							else
@@ -1271,12 +1725,20 @@ void Game::isCheck(int p)              //changes only variable "check" to true
 			{
 
 				if (p - 7 == q || p - 9 == q)
+				{
 					check = true;
+				}
 			}
 			break;
 		}
 	}
+	if (check)
+		attacker1 = p;
+	column = field->figure->place % 8;
+	row = field->figure->place / 8;
+	squares[field->figure->place].isTaken = false;
 	isDiscoveredCheck(field->figure->place,column,row);
+	squares[field->figure->place].isTaken = true;
 }
 
 void Game::isDiscoveredCheck(int p, int column, int row)
@@ -1299,19 +1761,31 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 		{
 			if (q > p)
 			{
-				for (int i = q; q - 8 * i >= 0; i++)
+				for (int i = 1; q - 8 * i >= 0; i++)
 				{
 					if (squares[q - 8 * i].isTaken)
-						if ((squares[q - 8 * i].figure->piece == 'q' || squares[q - 8 * i].figure->piece == 'r') && squares[q - 8 * i].figure->player != blackMove)
+					{
+						if ((squares[q - 8 * i].figure->piece == 'q' || squares[q - 8 * i].figure->piece == 'r') && squares[q - 8 * i].figure->player == blackMove)
+						{
 							if (check)
+							{
 								doubleCheck = true;
+								attacker2 = q - 8 * i;
+							}
 							else
 							{
 								check = true;
-								break;
+								attacker1 = q - 8 * i;
 							}
-						else
-							break;
+							for (int j = 1; j < i; j++)
+								dangerPath.emplace_back(q - 8 * j);
+							if (i != 1)
+								noPerm.emplace_back(q - 8);
+						}
+
+						
+						break;
+					}
 				}
 			}
 			else
@@ -1319,17 +1793,27 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 				for (int i = 1; q + 8 * i <= 63; i++)
 				{
 					if (squares[q + 8 * i].isTaken)
-						if ((squares[q + 8 * i].figure->piece == 'q' || squares[q + 8 * i].figure->piece == 'r') && squares[q + 8 * i].figure->player != blackMove)
-
+					{
+						if ((squares[q + 8 * i].figure->piece == 'q' || squares[q + 8 * i].figure->piece == 'r') && squares[q + 8 * i].figure->player == blackMove)
+						{
 							if (check)
+							{
 								doubleCheck = true;
+								attacker2 = q + 8 * i;
+							}
 							else
 							{
 								check = true;
-								break;
+								attacker1 = q + 8 * i;
 							}
-						else
-							break;
+							for (int j = 1; j < i; j++)
+								dangerPath.emplace_back(q + 8 * j);
+							if (i != 1)
+								noPerm.emplace_back(q + 8);
+						}
+						
+						break;
+					}
 				}
 			}
 		}
@@ -1337,19 +1821,28 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 		{
 			if (q > p)
 			{
-				for (int i = q; i >= 8 * row; i--)
+				for (int i = q - 1; i >= 8 * row; i--)
 				{
 					if (squares[i].isTaken)
 					{
-						if ((squares[i].figure->piece == 'q' || squares[i].figure->piece == 'r')&& squares[i].figure->player != blackMove)
+						if ((squares[i].figure->piece == 'q' || squares[i].figure->piece == 'r')&& squares[i].figure->player == blackMove)
 						{
 							if (check)
 							{
 								doubleCheck = true;
-
+								attacker2 = i;
 							}
 							else
+							{
 								check = true;
+								attacker1 = i;
+							}
+								for (int j = q - 1; j > i ; j--)
+								{
+									dangerPath.emplace_back(j);
+								}
+								if (i != q - 1)
+									noPerm.emplace_back(q - 1);
 						}
 						break;
 					}
@@ -1358,16 +1851,27 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 			}
 			else
 			{
-				for (int i = q; i <= 8 * row + 7; i++)
+				for (int i = q + 1; i <= 8 * row + 7; i++)
 				{
 					if (squares[i].isTaken)
 					{
-						if ((squares[i].figure->piece == 'r' || squares[i].figure->piece == 'q') && squares[i].figure->player != blackMove)
+						if ((squares[i].figure->piece == 'r' || squares[i].figure->piece == 'q') && squares[i].figure->player == blackMove)
 						{
-							if(check)
-								doubleCheck=true;
+							if (check)
+							{
+								doubleCheck = true;
+								attacker2 = i;
+							}
 							else
-								check=true;
+							{
+								check = true;
+								attacker1 = i;
+							}
+								for (int j = q + 1; j < i; i++)
+									dangerPath.emplace_back(j);
+								if (i != q + 1)
+									noPerm.emplace_back(q + 1);
+							
 						}
 						break;
 					}
@@ -1384,22 +1888,31 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 				if (q > p)
 				{
 					int min;
-					if (7 - column < row)
-						min = 7 - column;
+					if (rowK < 7 - columnK)
+						min = rowK;
 					else
-						min = row;
+						min = 7 - columnK;
 					for (int i = 1; i<=min; i++)
 					{
-						if (squares[p - 7 * i].isTaken)
+						if (squares[q - 7 * i].isTaken)
 						{
-							if ((squares[p - 7 * i].figure->piece == 'b' || squares[p - 7 * i].figure->piece == 'q') && squares[p - 7 * i].figure->player != blackMove)
+							if ((squares[q - 7 * i].figure->piece == 'b' || squares[q - 7 * i].figure->piece == 'q') && squares[q - 7 * i].figure->player == blackMove)
 							{
 								if (check)
 								{
 									doubleCheck = true;
+									attacker2 = q - 7 * i;
 								}
 								else
-									doubleCheck = true;
+								{
+									check = true;
+									attacker1 = q - 7 * i;
+								}
+									for (int j = 1; j < i; j++)
+										dangerPath.emplace_back(q - 7 * j);
+									if (i != 1)
+										noPerm.emplace_back(q - 7);
+									
 							}
 							break;
 						}
@@ -1409,24 +1922,32 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 				else
 				{
 					int min;
-					if (7 - row <column)
-						min = 7 - row;
+					if (7 - rowK < columnK)
+						min = 7 - rowK;
 					else
-						min = column;
+						min = columnK;
 
-					for (int i = p;i<=min; i++)
+					for (int i = 1;i<=min; i++)
 					{
-						if (squares[p + 7 * i].isTaken)
+						if (squares[q + 7 * i].isTaken)
 						{
-							if ((squares[p + 7 * i].figure->piece == 'b' || squares[p + 7 * i].figure->piece == 'q') && squares[p + 7 * i].figure->player != blackMove)
+							if ((squares[q + 7 * i].figure->piece == 'b' || squares[q + 7 * i].figure->piece == 'q') && squares[q + 7 * i].figure->player == blackMove)
 							{
 								if (check)
 								{
 									doubleCheck = true;
-									break;
+									attacker2 = q + 7 * i;
 								}
 								else
+								{
 									check = true;
+									attacker1 = q + 7 * i;
+								}
+									for (int j = 1; j < i; j++)
+										dangerPath.emplace_back(q + 7 * j);
+									if (i != 1)
+										noPerm.emplace_back(q + 7 * i);
+								
 
 							}
 							break;
@@ -1439,19 +1960,30 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 				int min;
 				if (q > p)
 				{
-					if (column < row)
-						min = column;
+					if (columnK < rowK)
+						min = columnK;
 					else
-						min = row;
+						min = rowK;
 					for (int i = 1; i<=min; i++)
 					{
-						if (squares[p - 9 * i].isTaken)
+						if (squares[q - 9 * i].isTaken)
 						{
-							if ((squares[p - 9 * i].figure->piece == 'b' || squares[p - 9 * i].figure->piece == 'q') && squares[p - 9 * i].figure->player != blackMove)
+							if ((squares[q - 9 * i].figure->piece == 'b' || squares[q - 9 * i].figure->piece == 'q') && squares[q - 9 * i].figure->player == blackMove)
 							{
 								if (check)
+								{
 									doubleCheck;
-								else check = true;
+									attacker2 = q - 9 * i;
+								}
+								else
+								{
+									check = true;
+									attacker1 = p;
+								}
+									for (int j = 1; j < i; j++)
+										dangerPath.emplace_back(q - 9 * j);
+									if (i != 1)
+										noPerm.emplace_back(q - 9);
 
 							}
 							break;
@@ -1460,19 +1992,30 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 				}
 				else
 				{
-					if (7 - row < 7 - column)
-						min = 7 - row;
+					if (7 - rowK < 7 - columnK)
+						min = 7 - rowK;
 					else
-						min = 7 - column;
-					for (int i = p; i <= min; i++)
+						min = 7 - columnK;
+					for (int i = 1; i <= min; i++)
 					{
-						if (squares[p + 9 * i].isTaken)
-							if ((squares[p - 9 * i].figure->piece == 'q' || squares[p - 9 * i].figure->piece == 'b') && squares[p - 9 * i].figure->player != blackMove)
+						if (squares[q + 9 * i].isTaken)
+							if ((squares[q + 9 * i].figure->piece == 'q' || squares[q + 9 * i].figure->piece == 'b') && squares[q + 9 * i].figure->player == blackMove)
 							{
 								if (check)
+								{
 									doubleCheck = true;
+									attacker2 = q + 9 * i;
+								}
 								else
+								{
 									check = true;
+									attacker1 = q + 9 * i;
+								}
+									for (int j = 1; j < i; j++)
+										dangerPath.emplace_back(q + 9 * j);
+									if (i != 1)
+										noPerm.emplace_back(q + 9);
+								
 
 							}
 							else break;
@@ -1483,7 +2026,7 @@ void Game::isDiscoveredCheck(int p, int column, int row)
 
 }
 
-void Game::block(int m)
+void Game::block(int m)                                 
 {
 	int columnK, rowK, column, row,p,max;
 	columnK = m % 8;									// m - king position
@@ -1597,7 +2140,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if ((p - 7 * j * x) < 0 || squares[p - 7 * j * x].isTaken)
+							if ((p - 7 * j * x) < 0)
+								break;
+							if (squares[p - 7 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 7 * j * x);
 								break;
@@ -1608,7 +2153,7 @@ void Game::block(int m)
 		
 						}
 					}
-					if((m-8-p)%9==0)
+					if ((m - 8 - p) % 9 == 0)
 					{
 						if (column <= columnK)
 							x = -1;
@@ -1616,7 +2161,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 9 * j * x < 0 || squares[p - 9 * j * x].isTaken)
+							if (p - 9 * j * x < 0)
+								break;
+							if (squares[p - 9 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 9 * j * x);
 								break;
@@ -1637,7 +2184,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 7 * j * x > 63 || squares[p - 7 * j * x].isTaken)
+							if ((p - 7 * j * x) > 63)
+								break;
+							if (squares[p - 7 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 7 * j * x);
 								break;
@@ -1647,7 +2196,7 @@ void Game::block(int m)
 		
 						}
 					}
-					if((m+8-p)%9==0)
+					if ((m + 8 - p) % 9 == 0)
 					{
 						if (column >= columnK)
 							x = 1;
@@ -1655,14 +2204,16 @@ void Game::block(int m)
 							x = -1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 9 * j * x > 63 || squares[p - 9 * j * x].isTaken)
+							if (p - 9 * j * x > 63)
+								break;
+							if (squares[p - 9 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 9 * j * x);
 								break;
 							}
 							else if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK)
 								noPerm.emplace_back(p - 9 * j * x);
-		
+
 						}
 					}
 				}
@@ -1829,7 +2380,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if ((p - 7 * j * x) < 0 || squares[p - 7 * j * x].isTaken)
+							if ((p - 7 * j * x) < 0)
+								break;
+							if (squares[p - 7 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 7 * j * x);
 								break;
@@ -1847,7 +2400,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 9 * j * x < 0 || squares[p - 9 * j * x].isTaken)
+							if (p - 9 * j * x < 0)
+								break;
+							if (squares[p - 9 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 9 * j * x);
 								break;
@@ -1869,7 +2424,9 @@ void Game::block(int m)
 							x = 1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 7 * j * x > 63 || squares[p - 7 * j * x].isTaken)
+							if ((p - 7 * j * x) > 63)
+								break;
+							if (squares[p - 7 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 7 * j * x);
 								break;
@@ -1887,7 +2444,9 @@ void Game::block(int m)
 							x = -1;
 						for (int j = 1; j <= max; j++)
 						{
-							if (p - 9 * j * x > 63 || squares[p - 9 * j * x].isTaken)
+							if (p - 9 * j * x > 63)
+								break;
+							if (squares[p - 9 * j * x].isTaken)
 							{
 								noPerm.emplace_back(p - 9 * j * x);
 								break;
@@ -2883,6 +3442,97 @@ void Game::block(int m)
 		}
 		}
 
+	if (check)
+	{
+		column = attacker1 % 8;
+		row = attacker1 / 8;
+		if (columnK == column)
+		{
+			if (m < attacker1 && rowK >= 1)
+				noPerm.emplace_back(m - 8);
+			else if (m > attacker1 && rowK <= 6)
+				noPerm.emplace_back(m + 8);
+
+		}
+		else if (rowK == row)
+		{
+			if (m < attacker1 && columnK >= 1)
+				noPerm.emplace_back(m - 1);
+			else if (m > attacker1 && columnK <= 6)
+				noPerm.emplace_back(m + 1);
+		}
+		else if (abs(columnK - column) == abs(rowK - row))
+		{
+			if (abs(m - attacker1) % 7 == 0)
+			{
+				if (m < attacker1 && columnK<=6 && rowK>=1)
+				{
+					noPerm.emplace_back(m - 7);
+				}
+				else if (m > attacker1 && columnK >= 1 && rowK <= 6)
+				{
+					noPerm.emplace_back(m + 7);
+				}
+			}
+			else
+			{
+				if (m < attacker1 && columnK >= 1 && rowK >= 1)
+				{
+					noPerm.emplace_back(m - 9);
+				}
+				else if (m > attacker1 && columnK <= 6 && rowK <= 6)
+				{
+					noPerm.emplace_back(m + 9);
+				}
+			}
+		}
+		if (doubleCheck)
+		{
+			column = attacker2 % 8;
+			row = attacker2 / 8;
+			if (columnK == column)
+			{
+				if (m < attacker2 && rowK >= 1)
+					noPerm.emplace_back(m - 8);
+				else if (m > attacker2 && rowK <= 6)
+					noPerm.emplace_back(m + 8);
+
+			}
+			else if (rowK == row)
+			{
+				if (m < attacker2 && columnK >= 1)
+					noPerm.emplace_back(m - 1);
+				else if (m > attacker2 && columnK <= 6)
+					noPerm.emplace_back(m + 1);
+			}
+			else if (abs(columnK - column) == abs(rowK - row))
+			{
+				if (abs(m - attacker2) % 7 == 0)
+				{
+					if (m < attacker2 && columnK <= 6 && rowK >= 1)
+					{
+						noPerm.emplace_back(m - 7);
+					}
+					else if (m > attacker2 && columnK >= 1 && rowK <= 6)
+					{
+						noPerm.emplace_back(m + 7);
+					}
+				}
+				else
+				{
+					if (m < attacker2 && columnK >= 1 && rowK >= 1)
+					{
+						noPerm.emplace_back(m - 9);
+					}
+					else if (m > attacker2 && columnK <= 6 && rowK <= 6)
+					{
+						noPerm.emplace_back(m + 9);
+					}
+				}
+			}
+		}
+
+	}
 
 	cout << "przed usunieciem" << endl;
 
@@ -2922,8 +3572,10 @@ void Game::stopdrag(RenderWindow& window, Event& event)
 		cout << "m wynosi: " << m << endl;
 		if (squares[m].permission)
 		{
-			
 			takeDown(m);
+			check = false;
+			attacker1 = 64;
+			doubleCheck = false;
 			isCheck(m);
 			noPerm.clear();
 			field->figure->setPos(squares[m].getPosition());        //set the piece in correct field
@@ -2999,8 +3651,9 @@ void Game::stopdrag(RenderWindow& window, Event& event)
 
 			squares[m].figure = field->figure;
 			squares[m].isTaken = true;
-			field->figure = nullptr;
 			field->isTaken = false;
+			field->figure = nullptr;
+			
 			for (unsigned& move : moves)
 			{
 				squares[move].permission = false;
@@ -3015,7 +3668,6 @@ void Game::stopdrag(RenderWindow& window, Event& event)
 				}
 				enemies.clear();
 			}
-
 			moves.clear();
 			field = nullptr;
 			if (!blackMove)
@@ -3028,7 +3680,6 @@ void Game::stopdrag(RenderWindow& window, Event& event)
 			field->figure->setPos(field->getPosition());
 	}
 }
-
 
 void Game::update(RenderWindow& window)
 {	
