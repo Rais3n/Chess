@@ -4,10 +4,10 @@
 
 using namespace sf;
 using namespace std;
-class Textures
+class Graphic
 {
 public:
-	static Texture bKing;      //every object from the same class shares the same variables
+	static Texture bKing;
 	static Texture bQueen;
 	static Texture bPawn;
 	static Texture bBishop;
@@ -20,7 +20,7 @@ public:
 	static Texture wRock;
 	static Texture wKnight;
 private:
-	static Texture loadTexture(string figure);    //no need to declare obj to call the function
+	static Texture LoadTexture(string figure);
 
 };
 

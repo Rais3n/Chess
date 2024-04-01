@@ -157,12 +157,14 @@
   <ItemGroup>
     <ClCompile Include="Chess.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="PawnPromotion.cpp" />
     <ClCompile Include="pieces.cpp" />
     <ClCompile Include="square.cpp" />
     <ClCompile Include="Textures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h" />
+    <ClInclude Include="PawnPromotion.h" />
     <ClInclude Include="pieces.h" />
     <ClInclude Include="square.h" />
     <ClInclude Include="Textures.h" />

@@ -30,27 +30,27 @@ Game::Game()
 		wPieces[i].setPieces('p', 0, i+40 );
 
 
-	for (float i = 0.f; i < 8.f; i++)                                      //sets the board
+	for (float i = 0.f; i < 8.f; i++)
 		for (float j = 0.f; j < 8.f; j++)
 		{
 			square temp((125.f + j * 50.f), (125.f + i * 50.f));
 			if (int(i + j) % 2 == 0)
-				temp.changeColor();
+				temp.ChangeColor();
 			squares.emplace_back(temp);
 		}
 
 }
 
-void Game::prepareGame(RenderWindow& window)
+void Game::PrepareGame(RenderWindow& window)
 {
 
 
 	for (int i = 0; i < 16; i++)
 	{
-		wPieces[i].setPos(squares[wPieces[i].place].getPosition());
-		bPieces[i].setPos(squares[bPieces[i].place].getPosition());
-		takePlace(wPieces[i].place, wPieces[i]);
-		takePlace(bPieces[i].place, bPieces[i]);
+		wPieces[i].setPos(squares[wPieces[i].place].GetPosition());
+		bPieces[i].setPos(squares[bPieces[i].place].GetPosition());
+		TakePlace(wPieces[i].place, wPieces[i]);
+		TakePlace(bPieces[i].place, bPieces[i]);
 		squares[wPieces[i].place].figure = &wPieces[i];
 		squares[bPieces[i].place].figure = &bPieces[i];
 		window.draw(wPieces[i]);
@@ -66,7 +66,7 @@ void Game::prepareGame(RenderWindow& window)
 
 }
 
-void Game::Board(RenderWindow &window)
+void Game::DrawBoard(RenderWindow &window)
 {
 	for (int i = 0; i < 64; i++)
 	{
@@ -74,45 +74,39 @@ void Game::Board(RenderWindow &window)
 	}
 }
 
-bool Game::isSafe(int m)						// position of piece that I want to move
+bool Game::IsKingSafe(int piecePosition)
 {
-	int q, columnK, rowK, column, row;			// q - king position
-	column = m % 8;
-	row = m / 8;
+	int kingPosition, columnOfKing, rowOfKing, column, row, distance, coefficient;
+	column = piecePosition % 8;
+	row = piecePosition / 8;
 	if (blackMove)
 	{
-		q = bPieces[4].place;
-		columnK = bPieces[4].place % 8;
-		rowK = bPieces[4].place / 8;
+		kingPosition = bPieces[4].place;
+		columnOfKing = bPieces[4].place % 8;
+		rowOfKing = bPieces[4].place / 8;
 	}
 	else
 	{
-		q = wPieces[4].place;
-		columnK = wPieces[4].place % 8;
-		rowK = wPieces[4].place / 8;
+		kingPosition = wPieces[4].place;
+		columnOfKing = wPieces[4].place % 8;
+		rowOfKing = wPieces[4].place / 8;
 	}
 
-	if (abs(column-columnK)==abs(row-rowK) && abs(m - q) % 7 == 0)
+	if (ArePiecesOnTheSameDiagonal(column, row, columnOfKing, rowOfKing) && IsFirstDiagonal(piecePosition, kingPosition))
 	{
-		int x;
-		int dis = abs(column - columnK); //dis - distance
-		if (q < m)
-			x = 1;
-		else
-			x = -1;
+		distance = abs(column - columnOfKing);
+		coefficient = AssignCoefficient(kingPosition, piecePosition);
 		int i;
-		for (i = 1; i<dis ;i++)
+		for (i = 1; i<distance ;i++)
 		{
-			if (squares[q + 7 * i * x].isTaken)
+			if (squares[kingPosition + 7 * i * coefficient].isTaken)
 				break;
 		}
-		if (i == dis)
+		if (IsPieceClosestToTheKing(i, distance) || check && distance > i)
 		{
 			int min;
-			int temp = q + 7 * i * x;
-			column = (q + 7 * i * x) % 8;
-			row = (q + 7 * i * x) / 8;
-			if (q < m)
+			int diagonal = 7;
+			if (kingPosition < piecePosition)
 			{
 				if (column < 7 - row)
 					min = column;
@@ -128,59 +122,31 @@ bool Game::isSafe(int m)						// position of piece that I want to move
 			}
 			for (i = 1; i <= min; i++)
 			{
-				if (squares[temp + i * 7 * x].isTaken)
-					if (squares[temp + i * 7 * x].figure->player != blackMove &&
-						(squares[temp + i * 7 * x].figure->piece == 'b' || squares[temp + i * 7 * x].figure->piece == 'q'))
-					{
-						if (squares[m].figure->piece == 'b' || squares[m].figure->piece == 'q')
-						{
-							min = (q - (temp + i * 7 * x)) % 8;
-							int j;
-							for (j = 1; j < min; j++)
-								moves.emplace_back(q + j * 7 * x);
-							enemies.emplace_back(q + j * 7 * x);
-						}
-						else if (squares[m].figure->piece == 'p')
-						{
-							if (m + 7 == temp + i * 7 * x && blackMove)
-								enemies.emplace_back(m + 7);
-							else if (m - 7 == temp + i * 7 * x && blackMove == 0)
-								enemies.emplace_back(m - 7);
-							
-						}
-							
-						return false;
-					}
-					else return true;
+				if (squares[piecePosition + i * 7 * coefficient].isTaken)
+					return IsSafe(kingPosition, piecePosition, coefficient, i, diagonal);
 			}
 		}
-		else if (squares[q + 7 * i * x].figure->player != blackMove &&
-			(squares[q + 7 * i * x].figure->piece == 'b' || squares[q + 7 * i * x].figure->piece == 'q'))
+		else if (squares[kingPosition + 7 * i * coefficient].figure->player != blackMove &&
+			(squares[kingPosition + 7 * i * coefficient].figure->piece == 'b' || squares[kingPosition + 7 * i * coefficient].figure->piece == 'q'))
 			return false;
 		else return true;
 
 	}
-	else if (abs(column - columnK) == abs(row - rowK) && abs(m - q) % 9 == 0)
+	else if (ArePiecesOnTheSameDiagonal(column, row, columnOfKing, rowOfKing) && IsSecondDiagonal(piecePosition, kingPosition))
 	{
-		int x;
-		int dis = abs(column - columnK); //dis - distance
-		if (q < m)
-			x = 1;
-		else
-			x = -1;
+		distance = abs(column - columnOfKing);
+		coefficient = AssignCoefficient(kingPosition, piecePosition);
 		int i;
-		for (i = 1; i < dis; i++)
+		for (i = 1; i < distance; i++)
 		{
-			if (squares[q + 9 * i * x].isTaken)
+			if (squares[kingPosition + 9 * i * coefficient].isTaken)
 				break;
 		}
-		if (i == dis)
+		if (IsPieceClosestToTheKing(i, distance) || check && distance > i)
 		{
 			int min;
-			int temp = q + 9 * i * x;		// = m
-			column = (q + 9 * i * x) % 8;
-			row = (q + 9 * i * x) / 8;
-			if (q < m)
+			int diagonal = 9;
+			if (kingPosition < piecePosition)
 			{
 				if (7 - column < 7 - row)
 					min = 7 - column;
@@ -196,118 +162,89 @@ bool Game::isSafe(int m)						// position of piece that I want to move
 			}
 			for (i = 1; i <= min; i++)
 			{
-				if (squares[temp + i * 9 * x].isTaken)
-					if (squares[temp + i * 9 * x].figure->player != blackMove &&
-						(squares[temp + i * 9 * x].figure->piece == 'b' || squares[temp + i * 9 * x].figure->piece == 'q'))
-					{
-						if (squares[m].figure->piece == 'b' || squares[m].figure->piece == 'q')
-						{
-							min = (q - (temp + i * 9 * x)) % 8;
-							int j;
-							for (j = 1; j < min; j++)
-								moves.emplace_back(q + j * 9 * x);
-							enemies.emplace_back(q + j * 9 * x);
-						}
-						else if (squares[m].figure->piece == 'p')
-						{
-							if (m + 9 == temp + i * 9 * x && blackMove)
-								enemies.emplace_back(m + 9);
-							else if (m - 9 == temp + i * 9 * x && blackMove == 0)
-								enemies.emplace_back(m - 9);
-
-						}
-
-						return false;
-					}
-					else return true;
+				if (squares[piecePosition + i * 9 * coefficient].isTaken)
+					return IsSafe(kingPosition, piecePosition, coefficient, i, diagonal);
 			}
 		}
-		else if (squares[q + 7 * i * x].figure->player != blackMove &&
-			(squares[q + 7 * i * x].figure->piece == 'b' || squares[q + 7 * i * x].figure->piece == 'q'))
+		else if (squares[kingPosition + 9 * i * coefficient].figure->player != blackMove &&
+			(squares[kingPosition + 9 * i * coefficient].figure->piece == 'b' || squares[kingPosition + 9 * i * coefficient].figure->piece == 'q'))
 			return false;
 		else return true;
 	}
-	else if (column==columnK)
+	else if (ArePiecesInTheSameColumn(column, columnOfKing))
 	{
-		column = m % 8;
-		row = m / 8;
-		int dis = abs(rowK - row);
-		int x;
-		if (row > rowK)
-			x = 1;
-		else x = -1;
+		distance = abs(rowOfKing - row);
+		coefficient = AssignCoefficient(kingPosition, piecePosition);
 		int i;
-		for (i = 1; i < dis; i++)
+		for (i = 1; i < distance; i++)
 		{
-			if (squares[q + 8 * i * x].isTaken)
+			if (squares[kingPosition + 8 * i * coefficient].isTaken)
 				break;
 		}
 
-		if (i == dis)
+		if (IsPieceClosestToTheKing(i, distance) || check && distance > i)
 		{
 			int max;
-			if (q > m)
+			if (kingPosition > piecePosition)
 				max = row;
 			else max = 7 - row;
 			for (int j = 1; j <= max; j++)
 			{
-				if (squares[m + 8 * j * x].isTaken)
+				if (squares[piecePosition + 8 * j * coefficient].isTaken)
 				{
-					if (squares[m + 8 * j * x].figure->player != blackMove &&
-						(squares[m + 8 * j * x].figure->piece == 'r' || squares[m + 8 * j * x].figure->piece == 'q'))
-						if (squares[m].figure->piece == 'p')
+					if (squares[piecePosition + 8 * j * coefficient].figure->player != blackMove &&
+						(squares[piecePosition + 8 * j * coefficient].figure->piece == 'r' || squares[piecePosition + 8 * j * coefficient].figure->piece == 'q')) 
+					{
+						if (squares[piecePosition].figure->piece == 'p')
 							return true;
-						else if (squares[m].figure->piece == 'r' || squares[m].figure->piece == 'q')
+						else if (squares[piecePosition].figure->piece == 'r' || squares[piecePosition].figure->piece == 'q')
 						{
 
-							for (int k = 1; k < dis; k++)
-								moves.emplace_back(q + 8 * k * x);
+							for (int k = 1; k < distance; k++)
+								moves.emplace_back(kingPosition + 8 * k * coefficient);
 							for (int l = 1; l < j; l++)
-								moves.emplace_back(m + 8 * l * x);
-							enemies.emplace_back(m + 8 * j * x);
-							return false;
+								moves.emplace_back(piecePosition + 8 * l * coefficient);
+							enemies.emplace_back(piecePosition + 8 * j * coefficient);
 						}
-						else return false;
+						return false;
+					}
 
 				}
 			}
 		}
-		else if (squares[q + 8 * i * x].figure->player != blackMove &&
-			(squares[q + 8 * i * x].figure->piece == 'r' || squares[q + 8 * i * x].figure->piece == 'q'))
+		else if (squares[kingPosition + 8 * i * coefficient].figure->player != blackMove &&
+			(squares[kingPosition + 8 * i * coefficient].figure->piece == 'r' || squares[kingPosition + 8 * i * coefficient].figure->piece == 'q'))
 			return false;
 		else return true;
 
-
 	}
-	else if (row == rowK)
+	else if (ArePiecesInTheSameRow(row, rowOfKing))
 	{
-		int x;
-		if (column > columnK)
-			x = 1;
-		else x = -1;
+		coefficient = AssignCoefficient(kingPosition, piecePosition);
 		int i;
-		int dis = abs(m - q);
-		for (i = 1; i < dis; i++)
-			if (squares[q + i*x].isTaken)
+		distance = abs(piecePosition - kingPosition);
+		for (i = 1; i < distance; i++)
+			if (squares[kingPosition + i * coefficient].isTaken)
 				break;
-		if (i == dis)
+		if (IsPieceClosestToTheKing(i, distance) || check && distance > i)
 		{
 			int max;
-			if (m > q)
+			if (piecePosition > kingPosition)
 				max = 7 - column;
 			else max = column;
 			for (int j = 1; j <= max; j++)
-				if (squares[m + j * x].isTaken)
+				if (squares[piecePosition + j * coefficient].isTaken)
 				{
-					if (squares[m + j * x].figure->player != blackMove && (squares[m + j * x].figure->piece == 'r' || squares[m + j * x].figure->piece == 'q'))
+					if (squares[piecePosition + j * coefficient].figure->player != blackMove && 
+						(squares[piecePosition + j * coefficient].figure->piece == 'r' || squares[piecePosition + j * coefficient].figure->piece == 'q'))
 					{
-						if (squares[m].figure->piece == 'r' || squares[m + j * x].figure->piece == 'q')
+						if (squares[piecePosition].figure->piece == 'r' || squares[piecePosition].figure->piece == 'q')
 						{
-							for (int k = 1; k < dis; k++)
-								moves.emplace_back(q + k * x);
+							for (int k = 1; k < distance; k++)
+								moves.emplace_back(kingPosition + k * coefficient);
 							for (int k = 1; k < max; k++)
-								moves.emplace_back(m + k * x);
-							enemies.emplace_back(m + j * x);
+								moves.emplace_back(piecePosition + k * coefficient);
+							enemies.emplace_back(piecePosition + j * coefficient);
 
 						}
 						return false;
@@ -315,8 +252,8 @@ bool Game::isSafe(int m)						// position of piece that I want to move
 					return true;
 				}
 		}
-		else if (squares[q + i * x].figure->player != blackMove &&
-			(squares[q + i * x].figure->piece == 'r' || squares[q + i * x].figure->piece == 'q'))
+		else if (squares[kingPosition + i * coefficient].figure->player != blackMove &&
+			(squares[kingPosition + i * coefficient].figure->piece == 'r' || squares[kingPosition + i * coefficient].figure->piece == 'q'))
 			return false;
 		else return true;
 	}
@@ -324,13 +261,71 @@ bool Game::isSafe(int m)						// position of piece that I want to move
 	return true;
 }
 
-void Game::takePlace(int place, pieces figure)
+bool Game::IsSafe(int kingPosition, int piecePosition, int coefficient, int i, int diagonal) {
+	int min;
+	if (squares[piecePosition + i * diagonal * coefficient].figure->player != blackMove &&
+		(squares[piecePosition + i * diagonal * coefficient].figure->piece == 'b' || squares[piecePosition + i * diagonal * coefficient].figure->piece == 'q'))
+	{
+		if (squares[piecePosition].figure->piece == 'b' || squares[piecePosition].figure->piece == 'q')
+		{
+			min = (kingPosition - (piecePosition + i * diagonal * coefficient)) % 8;
+			int j;
+			for (j = 1; j < min; j++)
+				moves.emplace_back(kingPosition + j * diagonal * coefficient);
+			enemies.emplace_back(kingPosition + j * diagonal * coefficient);
+		}
+		else if (squares[piecePosition].figure->piece == 'p')
+		{
+			if (piecePosition + diagonal == piecePosition + i * diagonal * coefficient && blackMove)
+				enemies.emplace_back(piecePosition + diagonal);
+			else if (piecePosition - diagonal == piecePosition + i * diagonal * coefficient && blackMove == 0)
+				enemies.emplace_back(piecePosition - diagonal);
+
+		}
+
+		return false;
+	}
+	else return true;
+}
+
+bool Game::IsPieceClosestToTheKing(int iteration, int distance) {
+	return iteration == distance;
+}
+
+int Game::AssignCoefficient(int kingPosition, int piecePosition) {
+	if (kingPosition < piecePosition)
+		return 1;
+	else
+		return -1;
+}
+
+bool Game::ArePiecesInTheSameRow(int row, int rowOfKing) {
+	return row == rowOfKing;
+}
+
+bool Game::ArePiecesInTheSameColumn(int column, int columnOfKing) {
+	return column == columnOfKing;
+}
+
+bool Game::ArePiecesOnTheSameDiagonal(int column, int row, int columnOfKing, int rowOfKing) {
+	return abs(column - columnOfKing) == abs(row - rowOfKing);
+}
+
+bool Game::IsFirstDiagonal(int piecePosition, int kingPosition) {
+	return abs(piecePosition - kingPosition) % 7 == 0;
+}
+
+bool Game::IsSecondDiagonal(int piecePosition, int kingPosition) {
+	return abs(piecePosition - kingPosition) % 9 == 0;
+}
+
+void Game::TakePlace(int place, pieces figure)
 {
 	squares[place].isTaken = true;
 	squares[place].figure = &figure;
 }
 
-int Game::whichField(RenderWindow& window, Event& event)
+int Game::GetClickedField(RenderWindow& window, Event& event)
 {	
 	Vector2i mousePos = Mouse::getPosition(window);
 	if (mousePos.x >= 100 && mousePos.x <= 500 && mousePos.y >= 100 && mousePos.y <= 500)
@@ -341,423 +336,173 @@ int Game::whichField(RenderWindow& window, Event& event)
 	return 63;
 }
 
-void Game::possibleMoves(RenderWindow& window, Event& event)
+void Game::PossibleMoves(RenderWindow& window, Event& event)
 {
-
-if (event.mouseButton.button == Mouse::Left && !isDragging)
-{
-	int m = whichField(window, event); //which field mouse 
-	cout << "moje pole wynosi" << m << endl;
-	if (field != nullptr && squares[m].permission == false )      //clears the dots (possible moves) if player clicks empty square or enemy's piece
+	if (event.mouseButton.button == Mouse::Left && !isDragging && !isPromotion)
 	{
-		for (unsigned& move : moves)
+		int clickedField = GetClickedField(window, event);
+		if (field != nullptr && squares[clickedField].permission == false )      //clears the dots (possible moves) if player clicks empty square or enemy's piece
 		{
-			squares[move].permission = false;
+			for (unsigned& move : moves)
+			{
+				squares[move].permission = false;
+			}
+			for (unsigned& enemy : enemies)
+				squares[enemy].permission = false;
+			moves.clear();
+			enemies.clear();
+			if (squares[clickedField].isTaken == false || squares[clickedField].figure->player != blackMove)
+				field = nullptr;
 		}
-		for (unsigned& e : enemies)
-			squares[e].permission = false;
-		moves.clear();
-		enemies.clear();
-		if (squares[m].isTaken == false || squares[m].figure->player != blackMove)
-			field = nullptr;
-	}
-
 	
-	if (!isDragging && squares[m].isTaken && squares[m].figure->player == blackMove)
-	{
-
-				char piece = squares[m].figure->piece;
-				int player = squares[m].figure->player;
-				int column = m % 8;                          // from 0 to 7
-				int row = m / 8;                             // from 0 to 7
-
-
-				
-				if (piece == 'p'&& !doubleCheck && isSafe(m))
-				{
-					if (squares[m].figure->player == 0)
-					{
-						if (squares[m - 8].isTaken == false)
-						{
-							moves.emplace_back(m - 8);
-							if (row == 6 && squares[m - 2 * 8].isTaken == false)
-								moves.emplace_back(m - 2 * 8);
-						}
-						if (column > 0 && column < 7)
-						{
-							if (squares[m - 8 - 1].figure!=nullptr && squares[m - 8 - 1].figure->player == 1)
-								enemies.emplace_back(m - 8 - 1);
-							if (squares[m - 8 + 1].figure!=nullptr && squares[m - 8 + 1].figure->player == 1)
-								enemies.emplace_back(m - 8 + 1);
-						}
-						else if (column == 0)
-						{
-							if (squares[m - 8 + 1].figure != nullptr && squares[m - 8 + 1].figure->player == 1)
-								enemies.emplace_back(m - 8 + 1);
-						}
-						else if(column==7)
-							if (squares[m - 8 - 1].figure != nullptr && squares[m - 8 - 1].figure->player == 1)
-								enemies.emplace_back(m - 8 - 1);
-					}
-
-
-					if (squares[m].figure->player == 1)
-					{
-						if (squares[m + 8].isTaken == false)
-						{
-							moves.emplace_back(m + 8);
-							if (row == 1 && squares[m + 2 * 8].isTaken == false)
-								moves.emplace_back(m + 2 * 8);
-						}
-						if (column > 0 && column < 7)
-						{
-							if (squares[m + 8 - 1].figure!=nullptr && squares[m + 8 - 1].figure->player == 0)
-								enemies.emplace_back(m + 8 - 1);
-							if (squares[m + 8 + 1].figure!=nullptr && squares[m + 8 + 1].figure->player == 0)
-								enemies.emplace_back(m + 8 + 1);
-						}
-						else if (column == 0)
-						{
-							if (squares[m + 8 + 1].figure != nullptr && squares[m + 8 + 1].figure->player == 0)
-								enemies.emplace_back(m + 8 + 1);
-						}
-						else if (column == 7)
-							if (squares[m + 8 - 1].figure!=nullptr && squares[m + 8 - 1].figure->player == 0)
-								enemies.emplace_back(m + 8 - 1);
-					}
-				}
-				else if (piece == 'k' && !doubleCheck && isSafe(m))
+		
+		if (!isDragging && squares[clickedField].isTaken && squares[clickedField].figure->player == blackMove)
+		{
+	
+			char piece = squares[clickedField].figure->piece;
+			int player = squares[clickedField].figure->player;
+			int coefficient;
+			int column = clickedField % boardSize;
+			int row = clickedField / boardSize;
+	
+			if (piece == 'p' && !doubleCheck && IsKingSafe(clickedField))
+			{
+				if (squares[clickedField].figure->player == whitePlayer)
+					coefficient = 8;
+				if (squares[clickedField].figure->player == blackPlayer)
+					coefficient = -8;
+				AddPawnsPossibleMoves(coefficient, clickedField);
+			}
+			else if (piece == 'k' && !doubleCheck && IsKingSafe(clickedField))
 				{
 					if (column >= 2)
 					{
 						if (row >= 1)
-							if (squares[m - 2 - 8].isTaken == false)
-								moves.emplace_back(m - 2 - 8);
-							else if (squares[m - 2 - 8].figure->player != blackMove)
-								enemies.emplace_back(m - 2 - 8);
+							if (squares[clickedField - 2 - 8].isTaken == false)
+								moves.emplace_back(clickedField - 2 - 8);
+							else if (squares[clickedField - 2 - 8].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 2 - 8);
 						if (7 - row >= 1)
-							if (squares[m - 2 + 8].isTaken == false)
-								moves.emplace_back(m - 2 + 8);
-							else if(squares[m - 2 + 8].figure->player != blackMove)
-								enemies.emplace_back(m - 2 + 8);
+							if (squares[clickedField - 2 + 8].isTaken == false)
+								moves.emplace_back(clickedField - 2 + 8);
+							else if(squares[clickedField - 2 + 8].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 2 + 8);
 					}			
 					if (7 - column >= 2)
 					{
 						if (row >= 1)
-							if (squares[m + 2 - 8].isTaken == false)
-								moves.emplace_back(m + 2 - 8);
-							else if (squares[m + 2 - 8].figure->player != blackMove)
-								enemies.emplace_back(m + 2 - 8);
+							if (squares[clickedField + 2 - 8].isTaken == false)
+								moves.emplace_back(clickedField + 2 - 8);
+							else if (squares[clickedField + 2 - 8].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 2 - 8);
 						if (7 - row >= 1)
-							if (squares[m + 2 + 8].isTaken == false)
-								moves.emplace_back(m + 2 + 8);
-							else if (squares[m + 2 + 8].figure->player != blackMove)
-								enemies.emplace_back(m + 2 + 8);
+							if (squares[clickedField + 2 + 8].isTaken == false)
+								moves.emplace_back(clickedField + 2 + 8);
+							else if (squares[clickedField + 2 + 8].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 2 + 8);
 					}
 					if (row >= 2)
 					{
 						if (column >= 1)
-							if (squares[m - 2 * 8 - 1].isTaken == false)
-								moves.emplace_back(m - 2 * 8 - 1);
-							else if (squares[m - 2 * 8 - 1].figure->player != blackMove)
-								enemies.emplace_back(m - 2 * 8 - 1);
+							if (squares[clickedField - 2 * 8 - 1].isTaken == false)
+								moves.emplace_back(clickedField - 2 * 8 - 1);
+							else if (squares[clickedField - 2 * 8 - 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 2 * 8 - 1);
 						if (7 - column >= 1)
-							if (squares[m - 2 * 8 + 1].isTaken == false)
-								moves.emplace_back(m - 2 * 8 + 1);
-							else if (squares[m - 2 * 8 + 1].figure->player != blackMove)
-								enemies.emplace_back(m - 2 * 8 + 1);
+							if (squares[clickedField - 2 * 8 + 1].isTaken == false)
+								moves.emplace_back(clickedField - 2 * 8 + 1);
+							else if (squares[clickedField - 2 * 8 + 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 2 * 8 + 1);
 					}
 					if (7 - row >= 2)
 					{
 						if (column >= 1)
-							if (squares[m + 2 * 8 - 1].isTaken == false)
-								moves.emplace_back(m + 2 * 8 - 1);
-							else if (squares[m + 2 * 8 - 1].figure->player != blackMove)
-								enemies.emplace_back(m + 2 * 8 - 1);
+							if (squares[clickedField + 2 * 8 - 1].isTaken == false)
+								moves.emplace_back(clickedField + 2 * 8 - 1);
+							else if (squares[clickedField + 2 * 8 - 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 2 * 8 - 1);
 						if (7 - column >= 1)
-							if (squares[m + 2 * 8 + 1].isTaken == false)
-								moves.emplace_back(m + 2 * 8 + 1);
-							else if (squares[m + 2 * 8 + 1].figure->player != blackMove)
-								enemies.emplace_back(m + 2 * 8 + 1);
+							if (squares[clickedField + 2 * 8 + 1].isTaken == false)
+								moves.emplace_back(clickedField + 2 * 8 + 1);
+							else if (squares[clickedField + 2 * 8 + 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 2 * 8 + 1);
 					}
-
-
 				}
-				else if (piece == 'b' && !doubleCheck && isSafe(m))
+			else if (piece == 'b' && !doubleCheck && IsKingSafe(clickedField))
 				{
-					int min;
-
-					if (row < column)
-						min = row;
-					else
-						min = column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m - 9 * i].isTaken == false)
-							moves.emplace_back(m - 9 * i);
-						else if (squares[m - 9 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 9 * i);
-							break;
-						}
-						else break;
-					}
-					if (row < 7 - column)
-						min = row;
-					else min = 7 - column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m - 7 * i].isTaken == false)
-							moves.emplace_back(m - 7 * i);
-						else if (squares[m - 7 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 7 * i);
-							break;
-						}
-						else break;
-					}
-					if (7 - row < column)
-						min = 7 - row;
-					else min = column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m + 7 * i].isTaken == false)
-							moves.emplace_back(m + 7 * i);
-						else if (squares[m + 7 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 7 * i);
-							break;
-						}
-						else break;
-					}
-					if (7 - row < 7 - column)
-						min = 7 - row;
-					else min = 7 - column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m + 9 * i].isTaken == false)
-							moves.emplace_back(m + 9 * i);
-						else if (squares[m + 9 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 9 * i);
-							break;
-						}
-						else break;
-					}
-
+					AddBishopPossibleMoves(column, row, clickedField);
 				}
-				else if (piece == 'q' && !doubleCheck && isSafe(m))
+			else if (piece == 'q' && !doubleCheck && IsKingSafe(clickedField))
 				{
-					int min;
-
-					if (row < column)
-						min = row;
-					else
-						min = column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m - 9 * i].isTaken == false)
-							moves.emplace_back(m - 9 * i);
-						else if (squares[m - 9 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 9 * i);
-							break;
-						}
-						else break;
-					}
-					if (row < 7 - column)
-						min = row;
-					else min = 7 - column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m - 7 * i].isTaken == false)
-							moves.emplace_back(m - 7 * i);
-						else if (squares[m - 7 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 7 * i);
-							break;
-						}
-						else break;
-					}
-					if (7 - row < column)
-						min = 7 - row;
-					else min = column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m + 7 * i].isTaken == false)
-							moves.emplace_back(m + 7 * i);
-						else if (squares[m + 7 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 7 * i);
-							break;
-						}
-						else break;
-					}
-					if (7 - row < 7 - column)
-						min = 7 - row;
-					else min = 7 - column;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[m + 9 * i].isTaken == false)
-							moves.emplace_back(m + 9 * i);
-						else if (squares[m + 9 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 9 * i);
-							break;
-						}
-						else break;
-					}
-					for (int i = m - 1; i >= m - column; i--)
-					{
-						if (squares[i].isTaken == false)
-							moves.emplace_back(i);
-						else if (squares[i].figure->player != blackMove)
-						{
-							enemies.emplace_back(i);
-							break;
-						}
-						else break;
-					}
-					for (int i = m + 1; i <= m + (7 - column); i++)
-					{
-						if (squares[i].isTaken == false)
-							moves.emplace_back(i);
-						else if (squares[i].figure->player != blackMove)
-						{
-							enemies.emplace_back(i);
-							break;
-						}
-						else break;
-					}
-					for (int i = 1; i <= row; i++)
-					{
-						if (squares[m - 8 * i].isTaken == false)
-							moves.emplace_back(m - 8 * i);
-						else if (squares[m - 8 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 8 * i);
-							break;
-						}
-						else break;
-					}
-					for (int i = 1; i <= 7 - row; i++)
-					{
-						if (squares[m + 8 * i].isTaken == false)
-							moves.emplace_back(m + 8 * i);
-						else if (squares[m + 8 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 8 * i);
-							break;
-						}
-						else break;
-					}
+					AddQueenPossibleMoves(column, row, clickedField);
 				}
-				else if (piece == 'r' && !doubleCheck && isSafe(m))
+			else if (piece == 'r' && !doubleCheck && IsKingSafe(clickedField))
 				{
-					for (int i = m - 1; i >= m - column; i--)
-					{
-						if (squares[i].isTaken == false)
-							moves.emplace_back(i);
-						else if (squares[i].figure->player != blackMove)
-						{
-							enemies.emplace_back(i);
-							break;
-						}
-						else break;
-					}
-					for (int i = m + 1; i <= m + (7 - column); i++)
-					{
-						if (squares[i].isTaken == false)
-							moves.emplace_back(i);
-						else if (squares[i].figure->player != blackMove)
-						{
-							enemies.emplace_back(i);
-							break;
-						}
-						else break;
-					}
-					for (int i = 1; i <= row; i++)
-					{
-						if (squares[m - 8 * i].isTaken == false)
-							moves.emplace_back(m - 8 * i);
-						else if (squares[m - 8 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m - 8 * i);
-							break;
-						}
-						else break;
-					}
-					for (int i = 1; i <= 7 - row; i++)
-					{
-						if (squares[m + 8 * i].isTaken == false)
-							moves.emplace_back(m + 8 * i);
-						else if (squares[m + 8 * i].figure->player != blackMove)
-						{
-							enemies.emplace_back(m + 8 * i);
-							break;
-						}
-						else break;
-					}
-
+					AddRockPossibleMoves(column, row, clickedField);
 				}
-				else if(piece == 'K')
+			else if(piece == 'K')
 				{
 					if (row >= 1)
 					{
 						if (column >= 1)
-							if (squares[m - 8 - 1].isTaken == false)
-								moves.emplace_back(m - 8 - 1);
-							else if (squares[m - 8 - 1].figure->player != blackMove)
-								enemies.emplace_back(m - 8 - 1);
+							if (squares[clickedField - 8 - 1].isTaken == false)
+								moves.emplace_back(clickedField - 8 - 1);
+							else if (squares[clickedField - 8 - 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 8 - 1);
 						if (7 - column >= 1)
-							if (squares[m - 8 + 1].isTaken == false)
-								moves.emplace_back(m - 8 + 1);
-							else if (squares[m - 8 + 1].figure->player != blackMove)
-								enemies.emplace_back(m - 8 + 1);
-						if (squares[m - 8].isTaken == false)
-							moves.emplace_back(m - 8);
-						else if (squares[m - 8].figure->player != blackMove)
-							enemies.emplace_back(m - 8);
+							if (squares[clickedField - 8 + 1].isTaken == false)
+								moves.emplace_back(clickedField - 8 + 1);
+							else if (squares[clickedField - 8 + 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField - 8 + 1);
+						if (squares[clickedField - 8].isTaken == false)
+							moves.emplace_back(clickedField - 8);
+						else if (squares[clickedField - 8].figure->player != blackMove)
+							enemies.emplace_back(clickedField - 8);
 					}
 					if (7 - row >= 1)
 					{
 						if (column >= 1)
-							if (squares[m + 8 - 1].isTaken == false)
-								moves.emplace_back(m + 8 - 1);
-							else if (squares[m + 8 - 1].figure->player != blackMove)
-								enemies.emplace_back(m + 8 - 1);
+							if (squares[clickedField + 8 - 1].isTaken == false)
+								moves.emplace_back(clickedField + 8 - 1);
+							else if (squares[clickedField + 8 - 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 8 - 1);
 						if (7 - column >= 1)
-							if (squares[m + 8 + 1].isTaken == false)
-								moves.emplace_back(m + 8 + 1);
-							else if (squares[m + 8 + 1].figure->player != blackMove)
-								enemies.emplace_back(m + 8 + 1);
-						if (squares[m + 8].isTaken == false)
-							moves.emplace_back(m + 8);
-						else if (squares[m + 8].figure->player != blackMove)
-							enemies.emplace_back(m + 8);
+							if (squares[clickedField + 8 + 1].isTaken == false)
+								moves.emplace_back(clickedField + 8 + 1);
+							else if (squares[clickedField + 8 + 1].figure->player != blackMove)
+								enemies.emplace_back(clickedField + 8 + 1);
+						if (squares[clickedField + 8].isTaken == false)
+							moves.emplace_back(clickedField + 8);
+						else if (squares[clickedField + 8].figure->player != blackMove)
+							enemies.emplace_back(clickedField + 8);
 					}
-					if (m-1 >= 0 && column >= 1 && squares[m - 1].isTaken == false)
-						moves.emplace_back(m - 1);
-					else if (column>=1 && squares[m - 1].figure->player != blackMove)
-						enemies.emplace_back(m - 1);
-					if (7 - column >= 1 && squares[m + 1].isTaken == false)
-						moves.emplace_back(m + 1);
-					else if (column <= 6 && squares[m + 1].figure->player != blackMove)
-						enemies.emplace_back(m + 1);
-					if(noPerm.empty())
-						block(m);
-					castling();
+					if (clickedField-1 >= 0 && column >= 1 && squares[clickedField - 1].isTaken == false)
+						moves.emplace_back(clickedField - 1);
+					else if (column>=1 && squares[clickedField - 1].figure->player != blackMove)
+						enemies.emplace_back(clickedField - 1);
+					if (7 - column >= 1 && squares[clickedField + 1].isTaken == false)
+						moves.emplace_back(clickedField + 1);
+					else if (column <= 6 && squares[clickedField + 1].figure->player != blackMove)
+						enemies.emplace_back(clickedField + 1);
+					if (noPerm.empty()) {
+						AddSquareIndexToNoPermList(clickedField, player);
+					}
+					AddCastlingMoves();
 				}
-
-				for (unsigned& move : moves)
+	
+			for (unsigned& move : moves)
 				{					
 					squares[move].permission = true;
 				}
-				if (check)
+			squares[clickedField].permission = false;
+
+
+			if (check)
 				{
+					AddFieldsToDangerPath(blackMove);
 					for (auto& d : dangerPath)
 						squares[d].permission = false;
-					if(squares[m].figure->piece != 'K')
+					if(squares[clickedField].figure->piece != 'K')
 					for (unsigned& move : moves)
 					{
 						if (squares[move].permission)
@@ -766,10 +511,10 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 							squares[move].permission = true;
 					}
 				}
-
-					for (unsigned& e : enemies)
+	
+				for (unsigned& e : enemies)
 					{
-						if (check && squares[m].figure->piece != 'K')
+						if (check && squares[clickedField].figure->piece != 'K')
 						{
 							if (e == attacker1)
 							{
@@ -782,20 +527,192 @@ if (event.mouseButton.button == Mouse::Left && !isDragging)
 						}
 							
 					}
+	
+			if (squares[clickedField].figure->piece == 'K')
+				for (int p : noPerm)
+				{
+					squares[p].permission = false;
+				}
+			if(squares[clickedField].isTaken)
+				field = &squares[clickedField];
+		}
+	}
+}
 
-				if (squares[m].figure->piece == 'K')
-					for (int& p : noPerm)
-					{
-						squares[p].permission = false;
-					}
-				if(squares[m].isTaken)
-					field = &squares[m];
+void Game::AddFieldsToDangerPath(int playerTurn) {
+	int kingPosition;
+	if (playerTurn == whitePlayer)
+		kingPosition = wPieces[4].place;
+	else kingPosition = bPieces[4].place;
+	char piece;
+	if (attacker1 != 64)
+		piece = squares[attacker1].figure->piece;
+	if (abs(attacker1 - kingPosition) % 7 == 0) {
+		if (attacker1 > kingPosition) {
+			for (int i = 1; attacker1 - 7 * i > kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 - 7 * i);
+			}
+		}
+		else{ 
+			for (int i = 1; attacker1 + 7 * i < kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 + 7 * i);
+			}
+		}
+
+	}
+	else if (abs(attacker1 - kingPosition) % 9 == 0) {
+		if (attacker1 > kingPosition) {
+			for (int i = 1; attacker1 - 9 * i > kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 - 9 * i);
+			}
+		}
+		else {
+			for (int i = 1; attacker1 + 9 * i < kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 + 9 * i);
+			}
+		}
+	}
+	else if (attacker1 % 8 == kingPosition % 8) {
+		if (attacker1 > kingPosition) {
+			for (int i = 1; attacker1 - 8 * i > kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 - 8 * i);
+			}
+		}
+		else {
+			for (int i = 1; attacker1 + 8 * i < kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 + 8 * i);
+			}
+		}
+	}
+	else if (attacker1 / 8 == kingPosition / 8) {
+		if (attacker1 > kingPosition) {
+			for (int i = 1; attacker1 - i > kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 - i);
+			}
+		}
+		else {
+			for (int i = 1; attacker1 + i < kingPosition; i++) {
+				dangerPath.emplace_back(attacker1 + i);
+			}
+		}
+	}
+}
+
+void Game::AddQueenPossibleMoves(int column, int row, int clickedField) {
+	AddBishopPossibleMoves(column, row, clickedField);
+	AddRockPossibleMoves(column, row, clickedField);
+}
+
+void Game::AddBishopPossibleMoves(int column, int row, int clickedField) {
+	int min;
+
+	if (row < column)
+		min = row;
+	else
+		min = column;
+	for (int i = 1; i <= min; i++)
+	{
+		if (!AddPossibleMove(clickedField - 9 * i))
+			break;
 	}
 
-}
+	if (row < 7 - column)
+		min = row;
+	else min = 7 - column;
+	for (int i = 1; i <= min; i++)
+	{
+		if (!AddPossibleMove(clickedField - 7 * i))
+			break;
+	}
+	if (7 - row < column)
+		min = 7 - row;
+	else min = column;
+	for (int i = 1; i <= min; i++)
+	{
+		if (!AddPossibleMove(clickedField + 7 * i))
+			break;
+	}
+	if (7 - row < 7 - column)
+		min = 7 - row;
+	else min = 7 - column;
+	for (int i = 1; i <= min; i++)
+	{
+		if (!AddPossibleMove(clickedField + 9 * i))
+			break;
+	}
 }
 
-void Game::grabPiece(RenderWindow& window)
+void Game::AddRockPossibleMoves(int column, int row, int clickedField) {
+	for (int i = clickedField - 1; i >= clickedField - column; i--)
+	{
+		if (!AddPossibleMove(i))
+			break;
+	}
+	for (int i = clickedField + 1; i <= clickedField + (7 - column); i++)
+	{
+		if (!AddPossibleMove(i))
+			break;
+	}
+	for (int i = 1; i <= row; i++)
+	{
+		if (!AddPossibleMove(clickedField - 8 * i))
+			break;
+	}
+	for (int i = 1; i <= 7 - row; i++)
+	{
+		if (!AddPossibleMove(clickedField + 8 * i))
+			break;
+	}
+}
+
+bool Game::AddPossibleMove(int position)
+{ 
+	if (squares[position].isTaken == false)
+		moves.emplace_back(position);
+	else if (squares[position].figure->player != blackMove)
+	{
+		enemies.emplace_back(position);
+		return false;
+	}
+	else return false;
+
+	return true;
+}
+
+void Game::AddPawnsPossibleMoves(int coefficient, int clickedField) {
+
+	int column = clickedField % boardSize;
+	int row = clickedField / boardSize;
+
+	if (squares[clickedField - coefficient].isTaken == false)
+	{
+		moves.emplace_back(clickedField - coefficient);
+		int startingRow;
+		if (blackMove)
+			startingRow = 1;
+		else startingRow = 6;
+
+		if (row == startingRow && squares[clickedField - 2 * coefficient].isTaken == false)
+			moves.emplace_back(clickedField - 2 * coefficient);
+	}
+	if (column > 0 && column < 7)
+	{
+		if (squares[clickedField - coefficient - 1].figure != nullptr && squares[clickedField - coefficient - 1].figure->player != blackMove)
+			enemies.emplace_back(clickedField - coefficient - 1);
+		if (squares[clickedField - coefficient + 1].figure != nullptr && squares[clickedField - coefficient + 1].figure->player != blackMove)
+			enemies.emplace_back(clickedField - coefficient + 1);
+	}
+	else if (column == 0)
+	{
+		if (squares[clickedField - coefficient + 1].figure != nullptr && squares[clickedField - coefficient + 1].figure->player != blackMove)
+			enemies.emplace_back(clickedField - coefficient + 1);
+	}
+	else if (column == 7)
+		if (squares[clickedField - coefficient - 1].figure != nullptr && squares[clickedField - coefficient - 1].figure->player != blackMove)
+			enemies.emplace_back(clickedField - coefficient - 1);
+}
+
+void Game::GrabPiece(RenderWindow& window)
 {
 	if(field!=nullptr)
 	if (isDragging)
@@ -809,25 +726,25 @@ void Game::grabPiece(RenderWindow& window)
 	}
 }
 
-void Game::drag(Event& event)
+void Game::Drag(Event& event)
 {
 		if(field!=nullptr && !isDragging)
 		if (event.mouseButton.button == Mouse::Left)
 			isDragging = true;
 }
 
-void Game::takeDown(int m)
+void Game::OnCapturePiece(int piecePosition)
 {
-	if (squares[m].figure != nullptr && squares[m].figure->player != blackMove)              //takes a piece off the board
+	if (squares[piecePosition].figure != nullptr && squares[piecePosition].figure->player != blackMove)
 	{	
-		squares[m].figure->scale({ 0.5f, 0.5f });
+		squares[piecePosition].figure->scale({ 0.5f, 0.5f });
 		int i = 0;
 		if (blackMove)
 		{	
-			switch (squares[m].figure->piece)
+			switch (squares[piecePosition].figure->piece)
 			{
 				case 'p':
-					wDeaths.insert(wDeaths.begin(), squares[m].figure);
+					wDeaths.insert(wDeaths.begin(), squares[piecePosition].figure);
 					break;
 				case 'b':
 					for (pieces* p : wDeaths)
@@ -836,9 +753,8 @@ void Game::takeDown(int m)
 							break;
 						i += 1;
 					}
-					wDeaths.insert(wDeaths.begin() + i, squares[m].figure);
+					wDeaths.insert(wDeaths.begin() + i, squares[piecePosition].figure);
 					break;
-					
 				case 'k':
 					for (pieces* p : wDeaths)
 					{
@@ -847,31 +763,28 @@ void Game::takeDown(int m)
 						i += 1;
 					}
 					cout << i;
-					wDeaths.insert(wDeaths.begin() + i, squares[m].figure);
+					wDeaths.insert(wDeaths.begin() + i, squares[piecePosition].figure);
 					break;
 				case 'r':
 					for (pieces* p : wDeaths)
 					{	
-						
 						if (p->piece != 'p' && p->piece != 'b' && p->piece != 'k')
 							break;
 						i += 1;
 					}
-					wDeaths.insert(wDeaths.begin() + i, squares[m].figure);
+					wDeaths.insert(wDeaths.begin() + i, squares[piecePosition].figure);
 					break;
 				case 'q':
-					wDeaths.emplace_back(squares[m].figure);
+					wDeaths.emplace_back(squares[piecePosition].figure);
 					break;
-
-
 			}
 		}
 		else
 		{
-			switch (squares[m].figure->piece)
+			switch (squares[piecePosition].figure->piece)
 			{
 			case 'p':
-				bDeaths.insert(bDeaths.begin(), squares[m].figure);
+				bDeaths.insert(bDeaths.begin(), squares[piecePosition].figure);
 				break;
 			case 'b':
 				for (pieces* p : bDeaths)
@@ -880,9 +793,8 @@ void Game::takeDown(int m)
 						break;
 					i += 1;
 				}
-				bDeaths.insert(bDeaths.begin() + i, squares[m].figure);
+				bDeaths.insert(bDeaths.begin() + i, squares[piecePosition].figure);
 				break;
-
 			case 'k':
 				for (pieces* p : bDeaths)
 				{
@@ -890,7 +802,7 @@ void Game::takeDown(int m)
 						break;
 					i += 1;
 				}
-				bDeaths.insert(bDeaths.begin() + i, squares[m].figure);
+				bDeaths.insert(bDeaths.begin() + i, squares[piecePosition].figure);
 				break;
 
 			case 'r':
@@ -900,2788 +812,702 @@ void Game::takeDown(int m)
 						break;
 					i += 1;
 				}
-				bDeaths.insert(bDeaths.begin() + i, squares[m].figure);
+				bDeaths.insert(bDeaths.begin() + i, squares[piecePosition].figure);
 				break;
 			case 'q':
-				bDeaths.emplace_back(squares[m].figure);
+				bDeaths.emplace_back(squares[piecePosition].figure);
 
 
 			}
 		}
-		squares[m].figure->place = -1;
+		squares[piecePosition].figure->place = -1;
 	}
 }
 
-void Game::castling() // think over
+void Game::AddCastlingMoves()
 {
-	if (blackMove && (LCB || RCB))
+	int startingLeftRockPositionWhite = 56;
+	int startingRightRockPositionWhite = 63;
+	int startingLeftRockPositionBlack = 0;
+	int startingRightRockPositionBlack = 7;
+	int startingKingPositionBlack = 4;
+	int startingKingPositionWhite = 60;
+	if (!check && blackMove == blackPlayer && (LeftCastlingBlack || RightCastlingBlack))
 	{
-		if (squares[4].figure->piece == 'K' && squares[4].figure->player == blackMove)
+		if (squares[startingKingPositionBlack].figure->piece == 'K' && squares[startingKingPositionBlack].figure->player == blackMove)
 		{
-			if (squares[0].figure->piece == 'r' && squares[0].figure->player == blackMove && LCB)
+			if (LeftCastlingBlack && squares[startingLeftRockPositionBlack].figure->piece == 'r' && squares[startingLeftRockPositionBlack].figure->player == blackMove);
 			{
+				if(!IsFieldCaptured(startingKingPositionBlack - 1, blackPlayer) && !IsFieldCaptured(startingKingPositionBlack - 2, blackPlayer))
 				if(!squares[1].isTaken && !squares[2].isTaken && !squares[3].isTaken)
 					moves.emplace_back(2);
 			}
-			if (squares[7].figure->piece == 'r' && squares[0].figure->player == blackMove && RCB)
+			if (RightCastlingBlack && squares[startingRightRockPositionBlack].figure->piece == 'r' && squares[startingRightRockPositionBlack].figure->player == blackMove)
+				if(!IsFieldCaptured(startingKingPositionBlack + 1, blackPlayer) && !IsFieldCaptured(startingKingPositionBlack + 2, blackPlayer))
 				if (!squares[5].isTaken && !squares[6].isTaken)
 					moves.emplace_back(6);
 		}
 	}
-	else if (blackMove == 0 && RCW || LCW)
+	else if (blackMove == whitePlayer && RightCastlingWhite || LeftCastlingWhite)
 	{
-		if (squares[60].figure->piece == 'K' && squares[60].figure->player == blackMove)
+		if (squares[startingKingPositionWhite].figure->piece == 'K' && squares[startingKingPositionWhite].figure->player == blackMove)
 		{
-			if (squares[56].figure->piece == 'r' && squares[56].figure->player == blackMove && LCW)
+			if (LeftCastlingWhite && squares[startingLeftRockPositionWhite].figure->piece == 'r' && squares[startingLeftRockPositionWhite].figure->player == blackMove)
 			{
+				if(!IsFieldCaptured(startingKingPositionWhite - 1, whitePlayer) && !IsFieldCaptured(startingKingPositionWhite - 2, whitePlayer))
 				if (!squares[57].isTaken && !squares[58].isTaken && !squares[59].isTaken)
 					moves.emplace_back(58);
 			}
-			if (squares[63].figure->piece == 'r' && squares[63].figure->player == blackMove && RCW)
+			if (RightCastlingWhite && squares[startingRightRockPositionWhite].figure->piece == 'r' && squares[startingRightRockPositionWhite].figure->player == blackMove)
+				if(!IsFieldCaptured(startingKingPositionWhite + 1, whitePlayer) && !IsFieldCaptured(startingKingPositionWhite + 2, whitePlayer))
 				if(!squares[61].isTaken && !squares[62].isTaken)
 					moves.emplace_back(62);
 		}
 	}
 }
 
-void Game::isCheck(int p)              //changes only variable "check" to true
-{
-	int column = p % 8;                          
-	int row = p / 8;
-	if(blackMove)
-	{ 
-		int columnK = wPieces[4].place % 8;
-		int rowK = wPieces[4].place / 8;
-		int q = wPieces[4].place;
-		switch (field->figure->piece)
-		{
-		case 'b':
-			if (abs(column - columnK) == abs(row - rowK))
-			{
-				if (abs(p - q) % 7 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 7 * i <= 63; i++)
-						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 7 * j);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 7 * i >= 0; i++)
-						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 7 * j);
-									break;
-								}
-								else
-									break;
+void Game::IsCheck() {
+	int kingPosition;
+	int player = blackMove;
 
-						}
-					}
-				}
-				else if (abs(p - q) % 9 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 9 * i <= 63; i++)
-						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 9 * i);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 9 * i >= 0; i++)
-						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 9 * j);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-
-					
-				}
-			}
-			break;
-		case 'q':
-			if (abs(column - columnK) == abs(row - rowK))
-			{
-				if (abs(p - q) % 7 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 7 * i <= 63; i++)
-						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 7 * j);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 7 * i >= 0; i++)
-						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 7 * j);
-									if (j != 1)
-										noPerm.emplace_back(q + 7);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-				}
-				else if (abs(p - q) % 9 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 9 * i <= 63; i++)
-						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 9 * i);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 9 * i >= 0; i++)
-						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 9 * j);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-
-
-				}
-			}
-			else if (row == rowK)
-			{
-				if (q > p)
-				{
-					int i;
-					for (i = p + 1; i < q; i++)
-					{
-						if (squares[i].isTaken && i != q)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p + 1; j < q; j++)
-							dangerPath.emplace_back(j);
-					}
-				}
-				else
-				{
-					int i;
-					for (i = p - 1; i > q; i--)
-					{
-						if (squares[i].isTaken)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p - 1; j > q; j--)
-							dangerPath.emplace_back(j);
-
-					}
-				}
-			}
-			else if (column == columnK)
-			{
-				if (q > p)
-				{
-
-					for (int i = 1; p + 8 * i <= 63; i++)
-					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p + 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-				else
-				{
-					for (int i = 1; p - 8 * i >= 0; i++)
-					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p - 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-			}
-			break;
-		case 'k':
-			if (rowK > row)
-			{
-				if (columnK > column)
-				{
-					if (p + 10 == q)
-					{
-						check = true;
-					}
-					else if (p + 17 == q)
-					{
-						check = true;
-					}
-				}
-				else if (columnK < column)
-				{
-					if (p + 6 == q)
-					{
-						check = true;
-					}
-					else if (p + 15 == q)
-					{
-						check = true;
-					}
-				}
-			}
-			else if (rowK < row)
-			{
-				if (columnK > column)
-				{
-					if (p - 6 == q)
-					{
-						check = true;
-					}
-					else if (p - 15 == q)
-					{
-						check = true;
-					}
-				}
-				else if (columnK < column)
-				{
-					if (p - 10 == q)
-					{
-						check = true;
-					}
-					else if (p - 17 == q)
-					{
-						check = true;
-					}
-				}
-			}
-			break;
-		case 'r':
-			if (row == rowK)
-			{
-				if (q > p)
-				{
-					int i;
-					for (i = p + 1; i < q; i++)
-					{
-						if (squares[i].isTaken && i != q)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p + 1; j < q; j++)
-							dangerPath.emplace_back(j);
-					}
-				}
-				else
-				{
-					int i;
-					for (i = p - 1; i > q; i--)
-					{
-						if (squares[i].isTaken)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p - 1; j > q; j--)
-							dangerPath.emplace_back(j);
-						
-					}
-				}
-			}
-			else if (column == columnK)
-			{
-				if (q > p)
-				{
-					
-					for (int i = 1; p + 8 * i <= 63 ; i++)
-					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p + 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-				else
-				{
-					for (int i = 1; p - 8 * i >= 0; i++)
-					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p - 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-			}
-			break;
-		case 'p':
-			if (rowK == row + 1)
-			{
-
-				if (p + 7 == q || p + 9 == q)
-				{
-					check = true;
-				}
-			}
-			break;
-		}
-	}
-	else
-	{
-		int columnK = bPieces[4].place % 8;
-		int rowK = bPieces[4].place / 8;
-		int q = bPieces[4].place;
-		switch (field->figure->piece)
-		{
-		case 'b':
-			if (abs(column - columnK) == abs(row - rowK))
-			{
-				if (abs(p - q) % 7 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 7 * i <= 63; i++)
-						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 7 * j);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 7 * i >= 0; i++)
-						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 7 * j);
-									if (j != 1)
-										noPerm.emplace_back(q + 7);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-				}
-				else if (abs(p - q) % 9 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 9 * i <= 63; i++)
-						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 9 * i);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 9 * i >= 0; i++)
-						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 9 * j);
-									if (j != 1)
-										noPerm.emplace_back(q + 9);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-
-
-				}
-			}
-			break;
-		case 'q':
-			if (abs(column - columnK) == abs(row - rowK))
-			{
-				if (abs(p - q) % 7 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 7 * i <= 63; i++)
-						{
-							if (squares[p + 7 * i].isTaken)
-								if (p + 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 7 * j);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 7 * i >= 0; i++)
-						{
-							if (squares[p - 7 * i].isTaken)
-								if (p - 7 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 7 * j);
-									if (j != 1)
-										noPerm.emplace_back(q + 7);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-				}
-				else if (abs(p - q) % 9 == 0)
-				{
-					if (q > p)
-					{
-						for (int i = 1; p + 9 * i <= 63; i++)
-						{
-							if (squares[p + 9 * i].isTaken)
-								if (p + 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p + 9 * i);
-									break;
-								}
-								else
-									break;
-						}
-					}
-					else
-					{
-						for (int i = 1; p - 9 * i >= 0; i++)
-						{
-							if (squares[p - 9 * i].isTaken)
-								if (p - 9 * i == q)
-								{
-									check = true;
-									int j;
-									for (j = 1; j < i; j++)
-										dangerPath.emplace_back(p - 9 * j);
-									if (j != 1)
-										noPerm.emplace_back(q + 9);
-									break;
-								}
-								else
-									break;
-
-						}
-					}
-
-
-				}
-			}
-			else if (row == rowK)
-			{
-				if (q > p)
-				{
-					int i;
-					for (i = p + 1; i < q; i++)
-					{
-						if (squares[i].isTaken && i != q)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p + 1; j < q; j++)
-							dangerPath.emplace_back(j);
-					}
-				}
-				else
-				{
-					int i;
-					for (i = p - 1; i > q; i--)
-					{
-						if (squares[i].isTaken)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p - 1; j > q; j--)
-							dangerPath.emplace_back(j);
-						if (p - 1 != q)
-							noPerm.emplace_back(q + 1);
-
-					}
-				}
-			}
-			else if (column == columnK)
-			{
-				if (q > p)
-				{
-
-					for (int i = 1; p + 8 * i <= 63; i++)
-					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p + 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-				else
-				{
-					for (int i = 1; p - 8 * i >= 0; i++)
-					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p - 8 * j);
-								if (j != 1)
-									noPerm.emplace_back(q + 8);
-								break;
-							}
-							else
-								break;
-					}
-				}
-			}
-			break;
-		case 'k':
-			if (rowK > row)
-			{
-				if (columnK > column)
-				{
-					if (p + 10 == q)
-					{
-						check = true;
-					}
-					else if (p + 17 == q)
-					{
-						check = true;
-					}
-				}
-				else if (columnK < column)
-				{
-					if (p + 6 == q)
-					{
-						check = true;
-					}
-					else if (p + 15 == q)
-					{
-						check = true;
-					}
-				}
-			}
-			else if (rowK < row)
-			{
-				if (columnK > column)
-				{
-					if (p - 6 == q)
-					{
-						check = true;
-					}
-					else if (p - 15 == q)
-					{
-						check = true;
-					}
-				}
-				else if (columnK < column)
-				{
-					if (p - 10 == q)
-					{
-						check = true;
-					}
-					else if (p - 17 == q)
-					{
-						check = true;
-					}
-				}
-			}
-			break;
-		case 'r':
-			if (row == rowK)
-			{
-				if (q > p)
-				{
-					int i;
-					for (i = p + 1; i < q; i++)
-					{
-						if (squares[i].isTaken && i != q)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p + 1; j < q; j++)
-							dangerPath.emplace_back(j);
-					}
-				}
-				else
-				{
-					int i;
-					for (i = p - 1; i > q; i--)
-					{
-						if (squares[i].isTaken)
-							break;
-					}
-					if (i == q)
-					{
-						check = true;
-						for (int j = p - 1; j > q; j--)
-							dangerPath.emplace_back(j);
-						if (p - 1 != q)
-							noPerm.emplace_back(q + 1);
-
-					}
-				}
-			}
-			else if (column == columnK)
-			{
-				if (q > p)
-				{
-
-					for (int i = 1; p + 8 * i <= 63; i++)
-					{
-						if (squares[p + 8 * i].isTaken)
-							if (p + 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p + 8 * j);
-								break;
-							}
-							else
-								break;
-					}
-				}
-				else
-				{
-					for (int i = 1; p - 8 * i >= 0; i++)
-					{
-						if (squares[p - 8 * i].isTaken)
-							if (p - 8 * i == q)
-							{
-								check = true;
-								int j;
-								for (j = 1; j < i; j++)
-									dangerPath.emplace_back(p - 8 * j);
-								if (j != 1)
-									noPerm.emplace_back(q + 8);
-								break;
-							}
-							else
-								break;
-					}
-				}
-			}
-			break;
-		case 'p':
-			if (rowK == row - 1)
-			{
-
-				if (p - 7 == q || p - 9 == q)
-				{
-					check = true;
-				}
-			}
-			break;
-		}
-	}
-	if (check)
-		attacker1 = p;
-	column = field->figure->place % 8;
-	row = field->figure->place / 8;
-	squares[field->figure->place].isTaken = false;
-	isDiscoveredCheck(field->figure->place,column,row);
-	squares[field->figure->place].isTaken = true;
-}
-
-void Game::isDiscoveredCheck(int p, int column, int row)
-{
-	int q,columnK,rowK;
 	if (blackMove)
-	{
-		q = wPieces[4].place;
-		columnK = wPieces[4].place % 8;
-		rowK = wPieces[4].place / 8;
-	}
-	else
-	{
-		q = bPieces[4].place;
-		columnK = bPieces[4].place % 8;
-		rowK = bPieces[4].place / 8;
+		kingPosition = wPieces[4].place;
+	else kingPosition = bPieces[4].place;
 
-	}
-	if (column == columnK)
-		{
-			if (q > p)
-			{
-				for (int i = 1; q - 8 * i >= 0; i++)
-				{
-					if (squares[q - 8 * i].isTaken)
-					{
-						if ((squares[q - 8 * i].figure->piece == 'q' || squares[q - 8 * i].figure->piece == 'r') && squares[q - 8 * i].figure->player == blackMove)
-						{
-							if (check)
-							{
-								doubleCheck = true;
-								attacker2 = q - 8 * i;
-							}
-							else
-							{
-								check = true;
-								attacker1 = q - 8 * i;
-							}
-							for (int j = 1; j < i; j++)
-								dangerPath.emplace_back(q - 8 * j);
-							if (i != 1)
-								noPerm.emplace_back(q - 8);
-						}
+	int column = kingPosition % 8;
+	int row = kingPosition / 8;
+	char piece;
+	int min;
+	if (row < column)
+		min = row;
+	else min = column;
 
-						
-						break;
+	for (int i = 1; i <= column; i++) {
+		if (squares[kingPosition - i].isTaken) {
+			if (squares[kingPosition - i].figure->player == player) {
+				piece = squares[kingPosition - i].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - i;
 					}
 				}
 			}
-			else
-			{
-				for (int i = 1; q + 8 * i <= 63; i++)
-				{
-					if (squares[q + 8 * i].isTaken)
-					{
-						if ((squares[q + 8 * i].figure->piece == 'q' || squares[q + 8 * i].figure->piece == 'r') && squares[q + 8 * i].figure->player == blackMove)
-						{
-							if (check)
-							{
-								doubleCheck = true;
-								attacker2 = q + 8 * i;
-							}
-							else
-							{
-								check = true;
-								attacker1 = q + 8 * i;
-							}
-							for (int j = 1; j < i; j++)
-								dangerPath.emplace_back(q + 8 * j);
-							if (i != 1)
-								noPerm.emplace_back(q + 8);
-						}
-						
-						break;
-					}
-				}
-			}
+			break;
 		}
-	else if (row == rowK)
-		{
-			if (q > p)
-			{
-				for (int i = q - 1; i >= 8 * row; i--)
-				{
-					if (squares[i].isTaken)
-					{
-						if ((squares[i].figure->piece == 'q' || squares[i].figure->piece == 'r')&& squares[i].figure->player == blackMove)
-						{
-							if (check)
-							{
-								doubleCheck = true;
-								attacker2 = i;
-							}
-							else
-							{
-								check = true;
-								attacker1 = i;
-							}
-								for (int j = q - 1; j > i ; j--)
-								{
-									dangerPath.emplace_back(j);
-								}
-								if (i != q - 1)
-									noPerm.emplace_back(q - 1);
-						}
-						break;
+	}
+	for (int i = 1; i < boardSize - column; i++) {
+		if (squares[kingPosition + i].isTaken) {
+			if (squares[kingPosition + i].figure->player == player) {
+				piece = squares[kingPosition + i].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
 					}
-
-				}
-			}
-			else
-			{
-				for (int i = q + 1; i <= 8 * row + 7; i++)
-				{
-					if (squares[i].isTaken)
-					{
-						if ((squares[i].figure->piece == 'r' || squares[i].figure->piece == 'q') && squares[i].figure->player == blackMove)
-						{
-							if (check)
-							{
-								doubleCheck = true;
-								attacker2 = i;
-							}
-							else
-							{
-								check = true;
-								attacker1 = i;
-							}
-								for (int j = q + 1; j < i; i++)
-									dangerPath.emplace_back(j);
-								if (i != q + 1)
-									noPerm.emplace_back(q + 1);
-							
-						}
-						break;
+					else {
+						check = true;
+						attacker1 = kingPosition + i;
 					}
 				}
 			}
+			break;
 		}
-	else if (abs(column - columnK) == abs(row - rowK))
-	{
-			
-		if (abs(p - q) % 7 == 0)
-			{
-				
-
-				if (q > p)
-				{
-					int min;
-					if (rowK < 7 - columnK)
-						min = rowK;
-					else
-						min = 7 - columnK;
-					for (int i = 1; i<=min; i++)
-					{
-						if (squares[q - 7 * i].isTaken)
-						{
-							if ((squares[q - 7 * i].figure->piece == 'b' || squares[q - 7 * i].figure->piece == 'q') && squares[q - 7 * i].figure->player == blackMove)
-							{
-								if (check)
-								{
-									doubleCheck = true;
-									attacker2 = q - 7 * i;
-								}
-								else
-								{
-									check = true;
-									attacker1 = q - 7 * i;
-								}
-									for (int j = 1; j < i; j++)
-										dangerPath.emplace_back(q - 7 * j);
-									if (i != 1)
-										noPerm.emplace_back(q - 7);
-									
-							}
-							break;
-						}
-
+	}
+	for (int i = 1; i <= row; i++) {
+		if (squares[kingPosition - i * 8].isTaken) {
+			if (squares[kingPosition - i * 8].figure->player == player) {
+				piece = squares[kingPosition - i * 8].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
 					}
-				}
-				else
-				{
-					int min;
-					if (7 - rowK < columnK)
-						min = 7 - rowK;
-					else
-						min = columnK;
-
-					for (int i = 1;i<=min; i++)
-					{
-						if (squares[q + 7 * i].isTaken)
-						{
-							if ((squares[q + 7 * i].figure->piece == 'b' || squares[q + 7 * i].figure->piece == 'q') && squares[q + 7 * i].figure->player == blackMove)
-							{
-								if (check)
-								{
-									doubleCheck = true;
-									attacker2 = q + 7 * i;
-								}
-								else
-								{
-									check = true;
-									attacker1 = q + 7 * i;
-								}
-									for (int j = 1; j < i; j++)
-										dangerPath.emplace_back(q + 7 * j);
-									if (i != 1)
-										noPerm.emplace_back(q + 7 * i);
-								
-
-							}
-							break;
-						}
+					else {
+						check = true;
+						attacker1 = kingPosition - i * 8;
 					}
 				}
 			}
-		else if (abs(p - q) % 9 == 0)
-			{
-				int min;
-				if (q > p)
-				{
-					if (columnK < rowK)
-						min = columnK;
-					else
-						min = rowK;
-					for (int i = 1; i<=min; i++)
-					{
-						if (squares[q - 9 * i].isTaken)
-						{
-							if ((squares[q - 9 * i].figure->piece == 'b' || squares[q - 9 * i].figure->piece == 'q') && squares[q - 9 * i].figure->player == blackMove)
-							{
-								if (check)
-								{
-									doubleCheck;
-									attacker2 = q - 9 * i;
-								}
-								else
-								{
-									check = true;
-									attacker1 = p;
-								}
-									for (int j = 1; j < i; j++)
-										dangerPath.emplace_back(q - 9 * j);
-									if (i != 1)
-										noPerm.emplace_back(q - 9);
-
-							}
-							break;
-						}
+			break;
+		}
+	}
+	for (int i = 1; i < boardSize - row; i++) {
+		if (squares[kingPosition + i * 8].isTaken) {
+			if (squares[kingPosition + i * 8].figure->player == player) {
+				piece = squares[kingPosition + i * 8].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
 					}
-				}
-				else
-				{
-					if (7 - rowK < 7 - columnK)
-						min = 7 - rowK;
-					else
-						min = 7 - columnK;
-					for (int i = 1; i <= min; i++)
-					{
-						if (squares[q + 9 * i].isTaken)
-							if ((squares[q + 9 * i].figure->piece == 'q' || squares[q + 9 * i].figure->piece == 'b') && squares[q + 9 * i].figure->player == blackMove)
-							{
-								if (check)
-								{
-									doubleCheck = true;
-									attacker2 = q + 9 * i;
-								}
-								else
-								{
-									check = true;
-									attacker1 = q + 9 * i;
-								}
-									for (int j = 1; j < i; j++)
-										dangerPath.emplace_back(q + 9 * j);
-									if (i != 1)
-										noPerm.emplace_back(q + 9);
-								
-
-							}
-							else break;
+					else {
+						check = true;
+						attacker1 = kingPosition + i * 8;
 					}
 				}
 			}
+			break;
+		}
+	}
+	for (int i = 1; i <= min; i++) {
+		if (squares[kingPosition - i * 9].isTaken) {
+			if (squares[kingPosition - i * 9].figure->player == player) {
+				piece = squares[kingPosition - i * 9].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - i * 9;
+					}
+				}
+			}
+			break;
+		}
 	}
 
+	if (row < 7 - column)
+		min = row;
+	else min = 7 - column;
+	for (int i = 1; i <= min; i++) {
+		if (squares[kingPosition - i * 7].isTaken) {
+			if (squares[kingPosition - i * 7].figure->player == player) {
+				piece = squares[kingPosition - i * 7].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - i * 7;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	if (column < 7 - row)
+		min = column;
+	else min = 7 - row;
+
+	for (int i = 1; i <= min; i++) {
+		if (squares[kingPosition + i * 7].isTaken) {
+			if (squares[kingPosition + i * 7].figure->player == player) {
+				piece = squares[kingPosition + i * 7].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + i * 7;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	if (7 - column < 7 - row)
+		min = 7 - column;
+	else min = 7 - row;
+
+	for (int i = 1; i <= min; i++) {
+		if (squares[kingPosition + i * 9].isTaken) {
+			if (squares[kingPosition + i * 9].figure->player == player) {
+				piece = squares[kingPosition + i * 9].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + i * 9;
+					}
+				}
+			}
+			break;
+		}
+	}
+
+	if (column >= 2)
+	{
+		if (row >= 1)
+			if (squares[kingPosition - 2 - 8].isTaken == true)
+				if (squares[kingPosition - 2 - 8].figure->player == player && squares[kingPosition - 2 - 8].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - 2 - 8;
+					}
+		if (7 - row >= 1)
+			if (squares[kingPosition - 2 + 8].isTaken == true)
+				if (squares[kingPosition - 2 + 8].figure->player == player && squares[kingPosition - 2 + 8].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - 2 + 8;
+					}
+	}
+	if (7 - column >= 2)
+	{
+		if (row >= 1)
+			if (squares[kingPosition + 2 - 8].isTaken == true)
+				if (squares[kingPosition + 2 - 8].figure->player == player && squares[kingPosition + 2 - 8].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + 2 - 8;
+					}
+		if (7 - row >= 1)
+			if (squares[kingPosition + 2 + 8].isTaken == true)
+				if (squares[kingPosition + 2 + 8].figure->player == player && squares[kingPosition + 2 + 8].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + 2 + 8;
+					}
+	}
+	if (row >= 2)
+	{
+		if (column >= 1)
+			if (squares[kingPosition - 2 * 8 - 1].isTaken == true)
+				if (squares[kingPosition - 2 * 8 - 1].figure->player == player && squares[kingPosition - 2 * 8 - 1].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - 2 * 8 - 1;
+					}
+		if (7 - column >= 1)
+			if (squares[kingPosition - 2 * 8 + 1].isTaken == true)
+				if (squares[kingPosition - 2 * 8 + 1].figure->player == player && squares[kingPosition - 2 * 8 + 1].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition - 2 * 8 + 1;
+					}
+	}
+	if (7 - row >= 2)
+	{
+		if (column >= 1)
+			if (squares[kingPosition + 2 * 8 - 1].isTaken == true)
+				if (squares[kingPosition + 2 * 8 - 1].figure->player == player && squares[kingPosition + 2 * 8 - 1].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + 2 * 8 - 1;
+					}
+		if (7 - column >= 1)
+			if (squares[kingPosition + 2 * 8 + 1].isTaken == true)
+				if (squares[kingPosition + 2 * 8 + 1].figure->player == player && squares[kingPosition + 2 * 8 + 1].figure->piece == 'k')
+					if (check) {
+						doubleCheck = true;
+						return;
+					}
+					else {
+						check = true;
+						attacker1 = kingPosition + 2 * 8 + 1;
+					}
+	}
+
+	if (column <= 6) {
+		if(squares[kingPosition + 9 - 18 * player].isTaken && squares[kingPosition + 9 - 18 * player].figure->piece == 'p' && squares[kingPosition + 9 - 18 * player].figure->player == player)
+			if (check) {
+				doubleCheck = true;
+				return;
+			}
+			else {
+				check = true;
+				attacker1 = kingPosition + 9 - 18 * player;	//18 * player to consider pawns on both sides
+			}
+	}
+	if (column >= 1) {
+		if (squares[kingPosition + 7 - 14 * player].isTaken && squares[kingPosition + 7 - 14 * player].figure->piece == 'p' && squares[kingPosition + 7 - 14 * player].figure->player == player)
+			if (check) {
+				doubleCheck = true;
+				return;
+			}
+			else {
+				check = true;
+				attacker1 = kingPosition + 7 - 14 * player;	//14*player to consider pawns on both sides
+			}
+	}
 }
 
-void Game::block(int m)                                 
-{
-	int columnK, rowK, column, row,p,max;
-	columnK = m % 8;									// m - king position
-	rowK = m / 8;
-	if (blackMove)										//the difference in only between names (bPieces and wPieces) and Pawns
-	{
-		//check rocks
-	
-		for (int i = 0; i < 2; i++)
-		{
-			if (wPieces[7 * i].place != -1)
-			{
-				p = wPieces[7 * i].place;						// p - position of piece that perhaps attacks king
-				column = wPieces[7 * i].place % 8;
-				row = wPieces[7 * i].place / 8;
-				int  x;
-				if (abs(column - columnK) <= 1)
-				{
-					
-					if (m < wPieces[7 * i].place)
-					{
-						x = -1;
-						if (m == p - 1)
-						{
-							if (p + 8 < 64)
-								noPerm.emplace_back(p + 8);
-						}
-						else if (m == p - 8)
-						{
-							if (column >= 1)
-								noPerm.emplace_back(p - 1);
-						}
-					}
-					else
-					{
-						x = 1;
-						if (m == p + 1)
-						{
-							if (p - 8 >= 0)
-								noPerm.emplace_back(p - 8);
-						}
-						else if (m == p + 8)
-						{
-							if(column>=1)
-								noPerm.emplace_back(p-1);
-						}
-					}
-					
-					for (int j = 1; j <= abs(row - rowK) + 1; j++)
-					{
-						if (p + 8 * j * x < 64 && p + 8 * j * x >= 0 && squares[p + 8 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p + 8 * j * x);
-							break;
-						}
-						if (abs((p + 8 * j * x) / 8 - rowK) <= 1)
-						{
-							if (p + 8 * j * x < 64 && p + 8 * j * x >= 0)
-								noPerm.emplace_back(p + 8 * j * x);
-						}
-						
-					}
-				}
-				if (abs(row - rowK) <= 1)
-				{
-					x = 1;
-					if (column > columnK)
-						x = -1;
-					for (int j = 1; j <= abs(column - columnK) + 1; j++)
-					{
-						if (squares[p + j * x].isTaken)
-						{
-							noPerm.emplace_back(p + j * x);
-							break;
-						}
-						if (abs((p + j * x) % 8 - columnK) <= 1)
-						{
-							
-							if (p + j * x < 64 && p + j * x >= 0)
-								noPerm.emplace_back(p + j * x);
-						}
-						
-					}
+bool Game::IsFieldCaptured(int position, int player) {
+	int column = position % 8;
+	int row = position / 8;
+	char piece;
+	int min;
+	if (row < column)
+		min = row;
+	else min = column;
+
+	for (int i = 1; i <= column; i++) {
+		if (squares[position - i].isTaken) {
+			if (squares[position - i].figure->player != player) {
+				piece = squares[position - i].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					return true;
 				}
 			}
-		}
-
-
-		//bishops
-
-		for (int i = 0; i < 2; i++)
-		{
-			if (wPieces[2 + 3 * i].place != -1)
-			{
-				p = wPieces[2 + 3 * i].place;						// p - position of piece that perhaps attacks king
-				column = wPieces[2 + 3 * i].place % 8;
-				row = wPieces[2 + 3 * i].place / 8;
-				int max;
-				if (abs(column - columnK) > abs(row - rowK))
-					max = abs(column - columnK);
-				else
-					max = abs(row - rowK);
-				int x;
-				if (abs(column - columnK) == abs(row - rowK + 1))
-				{
-					if ((m - 8 - p) % 7 == 0)
-					{
-						if (column >= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if ((p - 7 * j * x) < 0)
-								break;
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 7 * j * x);
-		
-						}
-					}
-					if ((m - 8 - p) % 9 == 0)
-					{
-						if (column <= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x < 0)
-								break;
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							if ((p - 9 * j * x) % 8 >= columnK && (p - 9 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-		
-						}
-					}
-				}
-				if (abs(column - columnK) == abs(row - rowK - 1))
-				{
-					if ((m + 8 - p) % 7 == 0)
-					{
-						if (column > columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if ((p - 7 * j * x) > 63)
-								break;
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK && (p - 7 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-		
-						}
-					}
-					if ((m + 8 - p) % 9 == 0)
-					{
-						if (column >= columnK)
-							x = 1;
-						else
-							x = -1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x > 63)
-								break;
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							else if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 9 * j * x);
-
-						}
-					}
-				}
-				if (abs(column - columnK + 1) == abs(row - rowK + 1) || abs(column - columnK - 1) == abs(row - rowK - 1))
-				{
-					if (abs(m + 9 - p) % 7 == 0 || abs(m - 9 - p) % 7 ==0)
-					{
-						if ((m + 9 - p) % 7 == 0)
-						{
-							if (column <= columnK)
-								x = 1;
-							else
-								x = -1;
-						}
-						else
-						{
-							if (column >= columnK)
-								x = -1;
-							else
-								x = 1;
-		
-						}
-		
-						for (int j = 1; j < max; j++)
-						{
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK + 1 && (p - 7 * j * x) / 8 >= rowK - 1 && (p - 7 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-						}
-					}
-				}
-				if (abs(column - columnK - 1) == abs(row - rowK + 1) || abs(column - columnK + 1) == abs(row - rowK - 1))
-				{
-					if (abs(m - 7 - p) % 9 == 0 || abs(m + 7 - p) % 9 == 0)
-					{
-						if ((m - 7 - p) % 9 == 0)
-						{
-							if (column > columnK)
-								x = 1;
-							else
-								x = -1;
-							
-						}
-						else
-						{
-							if (column < columnK)
-							{
-								x = -1;
-							}
-							else
-								x = 1;
-						}
-		
-						for (int j = 1; j < max; j++)
-						{
-		
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK + 1 && (p - 9 * j * x) / 8 >= rowK - 1 && (p - 9 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-						}
-					}
-				}
-			}
-		
-		}
-
-		//queen
-
-
-			if (wPieces[3].place != -1)
-			{
-				p = wPieces[3].place;						// p - position of piece that perhaps attacks king
-				column = wPieces[3].place % 8;
-				row = wPieces[3].place / 8;
-				int  x;
-				if (abs(column - columnK) <= 1)
-				{
-
-					if (m < wPieces[3].place)
-					{
-						x = -1;
-						if (m == p - 1)
-						{
-							if (p + 8 < 64 && !squares[p + 8].isTaken)
-								noPerm.emplace_back(p + 8);
-						}
-						else if (m == p - 8)
-						{
-							if (column >= 1 && !squares[p - 1].isTaken)
-								noPerm.emplace_back(p - 1);
-						}
-					}
-					else
-					{
-						x = 1;
-						if (m == p + 1)
-						{
-							if (p - 8 >= 0 && !squares[p - 8].isTaken)
-								noPerm.emplace_back(p - 8);
-						}
-						else if (m == p + 8)
-						{
-							if (column >= 1 && !squares[p - 1].isTaken)
-								noPerm.emplace_back(p - 1);
-						}
-					}
-
-					for (int j = 1; j <= abs(row - rowK) + 1; j++)
-					{
-						if (p + 8 * j * x < 64 && p + 8 * j * x >= 0 && squares[p + 8 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p + 8 * j * x);
-							break;					
-						}
-						if (abs((p + 8 * j * x) / 8 - rowK) <= 1)
-						{
-							if (p + 8 * j * x < 64 && p + 8 * j * x >= 0)
-								noPerm.emplace_back(p + 8 * j * x);
-						}
-
-					}
-				}
-				if (abs(row - rowK) <= 1)
-				{
-					x = 1;
-					if (column > columnK)
-						x = -1;
-					for (int j = 1; j <= abs(column - columnK) + 1; j++)
-					{
-						if (squares[p + j * x].isTaken)
-						{
-							noPerm.emplace_back(p + j * x);
-							break;
-						}
-						if (abs((p + j * x) % 8 - columnK) <= 1)
-						{
-
-							if (p + j * x < 64 && p + j * x >= 0)
-								noPerm.emplace_back(p + j * x);
-						}
-
-					}
-				}
-				int max;
-				if (abs(column - columnK) > abs(row - rowK))
-					max = abs(column - columnK);
-				else
-					max = abs(row - rowK);
-				if (abs(column - columnK) == abs(row - rowK + 1))
-				{
-					if ((m - 8 - p) % 7 == 0)
-					{
-						if (column >= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if ((p - 7 * j * x) < 0)
-								break;
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 7 * j * x);
-
-						}
-					}
-					if ((m - 8 - p) % 9 == 0)
-					{
-						if (column <= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x < 0)
-								break;
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-
-							if ((p - 9 * j * x) % 8 >= columnK && (p - 9 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-
-						}
-					}
-				}
-				if (abs(column - columnK) == abs(row - rowK - 1))
-				{
-					if ((m + 8 - p) % 7 == 0)
-					{
-						if (column > columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if ((p - 7 * j * x) > 63)
-								break;
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK && (p - 7 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-
-						}
-					}
-					if ((m + 8 - p) % 9 == 0)
-					{
-						if (column >= columnK)
-							x = 1;
-						else
-							x = -1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x > 63)
-								break;
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							else if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 9 * j * x);
-
-						}
-					}
-				}
-				if (abs(column - columnK + 1) == abs(row - rowK + 1) || abs(column - columnK - 1) == abs(row - rowK - 1))
-				{
-					if (abs(m + 9 - p) % 7 == 0 || abs(m - 9 - p) % 7 == 0)
-					{
-						if ((m + 9 - p) % 7 == 0)
-						{
-							if (column <= columnK)
-								x = 1;
-							else
-								x = -1;
-						}
-						else
-						{
-							if (column >= columnK)
-								x = -1;
-							else
-								x = 1;
-
-						}
-
-						for (int j = 1; j < max; j++)
-						{
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK + 1 && (p - 7 * j * x) / 8 >= rowK - 1 && (p - 7 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-						}
-					}
-				}
-				if (abs(column - columnK - 1) == abs(row - rowK + 1) || abs(column - columnK + 1) == abs(row - rowK - 1))
-				{
-					if (abs(m - 7 - p) % 9 == 0 || abs(m + 7 - p) % 9 == 0)
-					{
-						if ((m - 7 - p) % 9 == 0)
-						{
-							if (column > columnK)
-								x = 1;
-							else
-								x = -1;
-
-						}
-						else
-						{
-							if (column < columnK)
-							{
-								x = -1;
-							}
-							else
-								x = 1;
-						}
-
-						for (int j = 1; j < max; j++)
-						{
-
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK + 1 && (p - 9 * j * x) / 8 >= rowK - 1 && (p - 9 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-						}
-					}
-				}
-			}
-		
-
-		//knights
-
-		for (int i = 0; i < 2; i++)
-		{
-			if (wPieces[1 + 5 * i].place != -1)
-			{
-				p = wPieces[1 + 5 * i].place;						// p - position of piece that perhaps attacks king
-				column = wPieces[1 + 5 * i].place % 8;
-				row = wPieces[1 + 5 * i].place / 8;
-				if (row < rowK)
-				{
-					if (column < columnK)
-					{
-						if (columnK - column <= 3 && rowK - row <= 2 && column <= 5 && row <= 6)
-							noPerm.emplace_back(p + 10);
-						if (columnK - column <= 2 && rowK - row <= 3 && column <= 6 && row <= 5)
-							noPerm.emplace_back(p + 17);
-					}
-					else if (columnK == column && rowK - row <= 2 && row <= 5)
-					{
-						if (column >= 1)
-							noPerm.emplace_back(p + 15);
-						if (column <= 6)
-							noPerm.emplace_back(p + 17);
-					}
-					else
-					{
-						if (column - columnK <= 3 && rowK - row <= 2 && row <= 6 && column >= 2)
-							noPerm.emplace_back(p + 6);
-						if (column - columnK <= 2 && rowK - row <= 3 && row <= 5 && column >= 1)
-							noPerm.emplace_back(p + 15);
-					}
-				}
-				else
-				{
-					if (column < columnK)
-					{
-						if (row == rowK && columnK - column <= 3)
-						{
-							if (column <= 5)
-							{
-								noPerm.emplace_back(p + 10);
-								noPerm.emplace_back(p - 6);
-							}
-						}
-						else
-						{
-							if (columnK - column <= 3 && row - rowK <= 2 && column <= 5 && row >= 1)
-								noPerm.emplace_back(p - 6);
-							if (columnK - column <= 2 && row - rowK <= 3 && column <= 6 && row >= 2)
-								noPerm.emplace_back(p - 15);
-						}
-					}
-					else if (column > columnK)
-					{
-						if (row == rowK)
-						{
-							if (column - columnK <= 3 && column >= 2)
-							{
-								noPerm.emplace_back(p - 2 - 8);
-								noPerm.emplace_back(p - 2 + 8);
-							}
-						}
-						else
-						{
-							if (column - columnK <= 3 && row - rowK <= 2 && column >= 2 && row >= 1)
-								noPerm.emplace_back(p - 2 - 8);
-							if (column - columnK <= 2 && row - rowK <= 3 && column >= 1 && row >= 2)
-								noPerm.emplace_back(p - 1 - 2 * 8);
-						}
-					}
-					else if (column == columnK)
-					{
-						if (row - rowK <= 3)
-						{
-							if (row >= 2 && column <= 6)
-								noPerm.emplace_back(p - 15);
-							if (row >= 2 && column >= 1)
-								noPerm.emplace_back(p - 17);
-						}
-					}
-				}
-			}
-		}
-
-		//pawns
-
-		for (int i = 8; i < 16; i++)
-		{
-			if (wPieces[i].place != -1)
-			{
-				p = wPieces[i].place;						// p - position of piece that perhaps attacks king
-				row = wPieces[i].place / 8;
-				if (row - 2 == rowK || (row==rowK && row - 1>=0) || (row - 1 == rowK))
-				{
-					column = wPieces[i].place % 8;
-					if (column == columnK)
-					{
-						if (column >= 1)
-							noPerm.emplace_back(p - 1 - 8);
-						if (column <= 6)
-							noPerm.emplace_back(p + 1 - 8);
-					}
-					else if (column > columnK)
-					{
-						if (column - columnK <= 2)
-							noPerm.emplace_back(p - 1 - 8);
-
-					}
-					else
-					{
-						if (columnK - column <= 2)
-							noPerm.emplace_back(p + 1 - 8);
-					}
-
-				}
-			}
-		}
-
-		//king
-
-		p = wPieces[4].place;						// p - position of piece that perhaps attacks king
-		row = wPieces[4].place / 8;
-		column = wPieces[4].place % 8;
-		if (abs(columnK - column) > abs(rowK - row))
-			max = abs(columnK - column);
-		else
-			max = abs(rowK - row);
-		if (max == 2)
-		{
-			if (rowK - row == 2)					// checks if enemy king is 2 rows higer 
-			{
-				if (column == columnK)
-				{
-					if (column >= 1)
-						noPerm.emplace_back(p - 1 + 8);
-					noPerm.emplace_back(p + 8);
-					if (column <= 7)
-						noPerm.emplace_back(p + 1 + 8);
-				}
-				else if (abs(columnK - column) == 1)
-				{
-					noPerm.emplace_back(p - 8);
-					noPerm.emplace_back(m + 8);
-
-				}
-				else if (column < columnK)
-				{
-					noPerm.emplace_back(m - 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(m + 1 + 8);
-				}
-			}
-			else if (row - rowK == 2)				//checks if  enemy king is 2 rows lower
-			{
-				if (column == columnK)
-				{
-					if (column >= 1)
-						noPerm.emplace_back(p - 1 - 8);
-					noPerm.emplace_back(p - 8);
-					if (column <= 7)
-						noPerm.emplace_back(p + 1 - 8);
-				}
-				else if (abs(columnK - column) == 1)
-				{
-					noPerm.emplace_back(p - 8);
-					noPerm.emplace_back(m + 8);
-
-				}
-				else if (column < columnK)
-				{
-					noPerm.emplace_back(m - 1 - 8);
-				}
-				else
-				{
-					noPerm.emplace_back(m + 1 - 8);
-				}
-
-
-
-			}
-			else if (columnK - column == 2)
-			{
-				if (rowK == row)
-				{
-					if (row >= 1)
-						noPerm.emplace_back(p + 1 - 8);
-					noPerm.emplace_back(p + 1);
-					if (row <= 7)
-						noPerm.emplace_back(p + 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(p + 1);
-					noPerm.emplace_back(m - 1);
-				}
-			}
-			else if (column - columnK == 2)
-			{
-				if (rowK == row)
-				{
-					if (row >= 1)
-						noPerm.emplace_back(p - 1 - 8);
-					noPerm.emplace_back(p - 1);
-					if (row <= 7)
-						noPerm.emplace_back(p - 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(p - 1);
-					noPerm.emplace_back(m + 1);
-				}
-			}
-		}
-	}                             
-	else 
-	{
-		//check rocks
-
-		for (int i = 0; i < 2; i++)
-		{
-			if (bPieces[7 * i].place != -1)
-			{
-				p = bPieces[7 * i].place;						// p - position of piece that perhaps attacks king
-				column = bPieces[7 * i].place % 8;
-				row = bPieces[7 * i].place / 8;
-				int  x;
-				if (abs(column - columnK) <= 1)
-				{
-
-					if (m < bPieces[7 * i].place)
-					{
-						x = -1;
-						if (m == p - 1)
-						{
-							if (p + 8 < 64)
-								noPerm.emplace_back(p + 8);
-						}
-						else if (m == p - 8)
-						{
-							if (column >= 1)
-								noPerm.emplace_back(p - 1);
-						}
-					}
-					else
-					{
-						x = 1;
-						if (m == p + 1)
-						{
-							if (p - 8 >= 0)
-								noPerm.emplace_back(p - 8);
-						}
-						else if (m == p + 8)
-						{
-							if (column >= 1)
-								noPerm.emplace_back(p - 1);
-						}
-					}
-
-					for (int j = 1; j <= abs(row - rowK) + 1; j++)
-					{
-						if (p + 8 * j * x < 64 && p + 8 * j * x >= 0 && squares[p + 8 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p + 8 * j * x);
-							break;
-						}
-						if (abs((p + 8 * j * x) / 8 - rowK) <= 1)
-						{
-							if (p + 8 * j * x < 64 && p + 8 * j * x >= 0)
-								noPerm.emplace_back(p + 8 * j * x);
-						}
-
-					}
-				}
-				if (abs(row - rowK) <= 1)
-				{
-					x = 1;
-					if (column > columnK)
-						x = -1;
-					for (int j = 1; j <= abs(column - columnK) + 1; j++)
-					{
-						if (squares[p + j * x].isTaken)
-						{
-							noPerm.emplace_back(p + j * x);
-							break;
-						}
-						if (abs((p + j * x) % 8 - columnK) <= 1)
-						{
-
-							if (p + j * x < 64 && p + j * x >= 0)
-								noPerm.emplace_back(p + j * x);
-						}
-
-					}
-				}
-			}
-		}
-
-
-		//bishops
-
-		for (int i = 0; i < 2; i++)
-		{
-			if (bPieces[2 + 3 * i].place != -1)
-			{
-				p = bPieces[2 + 3 * i].place;						// p - position of piece that perhaps attacks king
-				column = bPieces[2 + 3 * i].place % 8;
-				row = bPieces[2 + 3 * i].place / 8;
-				int max;
-				if (abs(column - columnK) > abs(row - rowK))
-					max = abs(column - columnK);
-				else
-					max = abs(row - rowK);
-				int x;
-				if (abs(column - columnK) == abs(row - rowK + 1))
-				{
-					if ((m - 8 - p) % 7 == 0)
-					{
-						if (column >= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if ((p - 7 * j * x) < 0 || squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 7 * j * x);
-
-						}
-					}
-					if ((m - 8 - p) % 9 == 0)
-					{
-						if (column <= columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x < 0 || squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							if ((p - 9 * j * x) % 8 >= columnK && (p - 9 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-
-						}
-					}
-				}
-				if (abs(column - columnK) == abs(row - rowK - 1))
-				{
-					if ((m + 8 - p) % 7 == 0)
-					{
-						if (column > columnK)
-							x = -1;
-						else
-							x = 1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 7 * j * x > 63 || squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK && (p - 7 * j * x) % 8 <= columnK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-
-						}
-					}
-					if ((m + 8 - p) % 9 == 0)
-					{
-						if (column >= columnK)
-							x = 1;
-						else
-							x = -1;
-						for (int j = 1; j <= max; j++)
-						{
-							if (p - 9 * j * x > 63 || squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							else if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK)
-								noPerm.emplace_back(p - 9 * j * x);
-
-						}
-					}
-				}
-				if (abs(column - columnK + 1) == abs(row - rowK + 1) || abs(column - columnK - 1) == abs(row - rowK - 1))
-				{
-					if (abs(m + 9 - p) % 7 == 0 || abs(m - 9 - p) % 7 == 0)
-					{
-						if ((m + 9 - p) % 7 == 0)
-						{
-							if (column <= columnK)
-								x = 1;
-							else
-								x = -1;
-						}
-						else
-						{
-							if (column >= columnK)
-								x = -1;
-							else
-								x = 1;
-
-						}
-
-						for (int j = 1; j < max; j++)
-						{
-							if (squares[p - 7 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 7 * j * x);
-								break;
-							}
-							if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK + 1 && (p - 7 * j * x) / 8 >= rowK - 1 && (p - 7 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 7 * j * x);
-						}
-					}
-				}
-				if (abs(column - columnK - 1) == abs(row - rowK + 1) || abs(column - columnK + 1) == abs(row - rowK - 1))
-				{
-					if (abs(m - 7 - p) % 9 == 0 || abs(m + 7 - p) % 9 == 0)
-					{
-						if ((m - 7 - p) % 9 == 0)
-						{
-							if (column > columnK)
-								x = 1;
-							else
-								x = -1;
-
-						}
-						else
-						{
-							if (column < columnK)
-							{
-								x = -1;
-							}
-							else
-								x = 1;
-						}
-
-						for (int j = 1; j < max; j++)
-						{
-
-							if (squares[p - 9 * j * x].isTaken)
-							{
-								noPerm.emplace_back(p - 9 * j * x);
-								break;
-							}
-							if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK + 1 && (p - 9 * j * x) / 8 >= rowK - 1 && (p - 9 * j * x) / 8 <= rowK + 1)
-								noPerm.emplace_back(p - 9 * j * x);
-						}
-					}
-				}
-			}
-
-		}
-
-		//queen
-
-
-		if (bPieces[3].place != -1)
-		{
-			p = bPieces[3].place;						// p - position of piece that perhaps attacks king
-			column = bPieces[3].place % 8;
-			row = bPieces[3].place / 8;
-			int  x;
-			if (abs(column - columnK) <= 1)
-			{
-
-				if (m < bPieces[3].place)
-				{
-					x = -1;
-					if (m == p - 1)
-					{
-						if (p + 8 < 64 && !squares[p + 8].isTaken)
-							noPerm.emplace_back(p + 8);
-					}
-					else if (m == p - 8)
-					{
-						if (column >= 1 && !squares[p - 1].isTaken)
-							noPerm.emplace_back(p - 1);
-					}
-				}
-				else
-				{
-					x = 1;
-					if (m == p + 1)
-					{
-						if (p - 8 >= 0 && !squares[p - 8].isTaken)
-							noPerm.emplace_back(p - 8);
-					}
-					else if (m == p + 8)
-					{
-						if (column >= 1 && !squares[p - 1].isTaken)
-							noPerm.emplace_back(p - 1);
-					}
-				}
-
-				for (int j = 1; j <= abs(row - rowK) + 1; j++)
-				{
-					if (p + 8 * j * x < 64 && p + 8 * j * x >= 0 && squares[p + 8 * j * x].isTaken)
-					{
-						noPerm.emplace_back(p + 8 * j * x);
-						break;
-					}
-					if (abs((p + 8 * j * x) / 8 - rowK) <= 1)
-					{
-						if (p + 8 * j * x < 64 && p + 8 * j * x >= 0)
-							noPerm.emplace_back(p + 8 * j * x);
-					}
-
-				}
-			}
-			if (abs(row - rowK) <= 1)
-			{
-				x = 1;
-				if (column > columnK)
-					x = -1;
-				for (int j = 1; j <= abs(column - columnK) + 1; j++)
-				{
-					if (squares[p + j * x].isTaken)
-					{
-						noPerm.emplace_back(p + j * x);
-						break;
-					}
-					if (abs((p + j * x) % 8 - columnK) <= 1)
-					{
-
-						if (p + j * x < 64 && p + j * x >= 0)
-							noPerm.emplace_back(p + j * x);
-					}
-
-				}
-			}
-			int max;
-			if (abs(column - columnK) > abs(row - rowK))
-				max = abs(column - columnK);
-			else
-				max = abs(row - rowK);
-			if (abs(column - columnK) == abs(row - rowK + 1))
-			{
-				if ((m - 8 - p) % 7 == 0)
-				{
-					if (column >= columnK)
-						x = -1;
-					else
-						x = 1;
-					for (int j = 1; j <= max; j++)
-					{
-						if ((p - 7 * j * x) < 0 || squares[p - 7 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 7 * j * x);
-							break;
-						}
-						if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK)
-							noPerm.emplace_back(p - 7 * j * x);
-
-					}
-				}
-				if ((m - 8 - p) % 9 == 0)
-				{
-					if (column <= columnK)
-						x = -1;
-					else
-						x = 1;
-					for (int j = 1; j <= max; j++)
-					{
-						if (p - 9 * j * x < 0 || squares[p - 9 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 9 * j * x);
-							break;
-						}
-
-						if ((p - 9 * j * x) % 8 >= columnK && (p - 9 * j * x) % 8 <= columnK + 1)
-							noPerm.emplace_back(p - 9 * j * x);
-
-					}
-				}
-			}
-			if (abs(column - columnK) == abs(row - rowK - 1))
-			{
-				if ((m + 8 - p) % 7 == 0)
-				{
-					if (column > columnK)
-						x = -1;
-					else
-						x = 1;
-					for (int j = 1; j <= max; j++)
-					{
-						if (p - 7 * j * x > 63 || squares[p - 7 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 7 * j * x);
-							break;
-						}
-						if ((p - 7 * j * x) % 8 >= columnK && (p - 7 * j * x) % 8 <= columnK + 1)
-							noPerm.emplace_back(p - 7 * j * x);
-
-					}
-				}
-				if ((m + 8 - p) % 9 == 0)
-				{
-					if (column >= columnK)
-						x = 1;
-					else
-						x = -1;
-					for (int j = 1; j <= max; j++)
-					{
-						if (p - 9 * j * x > 63 || squares[p - 9 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 9 * j * x);
-							break;
-						}
-						else if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK)
-							noPerm.emplace_back(p - 9 * j * x);
-
-					}
-				}
-			}
-			if (abs(column - columnK + 1) == abs(row - rowK + 1) || abs(column - columnK - 1) == abs(row - rowK - 1))
-			{
-				if (abs(m + 9 - p) % 7 == 0 || abs(m - 9 - p) % 7 == 0)
-				{
-					if ((m + 9 - p) % 7 == 0)
-					{
-						if (column <= columnK)
-							x = 1;
-						else
-							x = -1;
-					}
-					else
-					{
-						if (column >= columnK)
-							x = -1;
-						else
-							x = 1;
-
-					}
-
-					for (int j = 1; j < max; j++)
-					{
-						if (squares[p - 7 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 7 * j * x);
-							break;
-						}
-						if ((p - 7 * j * x) % 8 >= columnK - 1 && (p - 7 * j * x) % 8 <= columnK + 1 && (p - 7 * j * x) / 8 >= rowK - 1 && (p - 7 * j * x) / 8 <= rowK + 1)
-							noPerm.emplace_back(p - 7 * j * x);
-					}
-				}
-			}
-			if (abs(column - columnK - 1) == abs(row - rowK + 1) || abs(column - columnK + 1) == abs(row - rowK - 1))
-			{
-				if (abs(m - 7 - p) % 9 == 0 || abs(m + 7 - p) % 9 == 0)
-				{
-					if ((m - 7 - p) % 9 == 0)
-					{
-						if (column > columnK)
-							x = 1;
-						else
-							x = -1;
-
-					}
-					else
-					{
-						if (column < columnK)
-						{
-							x = -1;
-						}
-						else
-							x = 1;
-					}
-
-					for (int j = 1; j < max; j++)
-					{
-
-						if (squares[p - 9 * j * x].isTaken)
-						{
-							noPerm.emplace_back(p - 9 * j * x);
-							break;
-						}
-						if ((p - 9 * j * x) % 8 >= columnK - 1 && (p - 9 * j * x) % 8 <= columnK + 1 && (p - 9 * j * x) / 8 >= rowK - 1 && (p - 9 * j * x) / 8 <= rowK + 1)
-							noPerm.emplace_back(p - 9 * j * x);
-					}
-				}
-			}
-		}
-
-
-		//knights
-
-		for (int i = 0; i < 2; i++)
-		{
-			if (bPieces[1 + 5 * i].place != -1)
-			{
-				p = bPieces[1 + 5 * i].place;						// p - position of piece that perhaps attacks king
-				column = bPieces[1 + 5 * i].place % 8;
-				row = bPieces[1 + 5 * i].place / 8;
-				if (row < rowK)
-				{
-					if (column < columnK)
-					{
-						if (columnK - column <= 3 && rowK - row <= 2 && column <= 5 && row <= 6)
-							noPerm.emplace_back(p + 10);
-						if (columnK - column <= 2 && rowK - row <= 3 && column <= 6 && row <= 5)
-							noPerm.emplace_back(p + 17);
-					}
-					else if (columnK == column && rowK - row <= 2 && row <= 5)
-					{
-						if (column >= 1)
-							noPerm.emplace_back(p + 15);
-						if (column <= 6)
-							noPerm.emplace_back(p + 17);
-					}
-					else
-					{
-						if (column - columnK <= 3 && rowK - row <= 2 && row <= 6 && column >= 2)
-							noPerm.emplace_back(p + 6);
-						if (column - columnK <= 2 && rowK - row <= 3 && row <= 5 && column >= 1)
-							noPerm.emplace_back(p + 15);
-					}
-				}
-				else
-				{
-					if (column < columnK)
-					{
-						if (row == rowK && columnK - column <= 3)
-						{
-							if (column <= 5)
-							{
-								noPerm.emplace_back(p + 10);
-								noPerm.emplace_back(p - 6);
-							}
-						}
-						else
-						{
-							if (columnK - column <= 3 && row - rowK <= 2 && column <= 5 && row >= 1)
-								noPerm.emplace_back(p - 6);
-							if (columnK - column <= 2 && row - rowK <= 3 && column <= 6 && row >= 2)
-								noPerm.emplace_back(p - 15);
-						}
-					}
-					else if (column > columnK)
-					{
-						if (row == rowK)
-						{
-							if (column - columnK <= 3 && column >= 2)
-							{
-								noPerm.emplace_back(p - 2 - 8);
-								noPerm.emplace_back(p - 2 + 8);
-							}
-						}
-						else
-						{
-							if (column - columnK <= 3 && row - rowK <= 2 && column >= 2 && row >= 1)
-								noPerm.emplace_back(p - 2 - 8);
-							if (column - columnK <= 2 && row - rowK <= 3 && column >= 1 && row >= 2)
-								noPerm.emplace_back(p - 1 - 2 * 8);
-						}
-					}
-					else if (column == columnK)
-					{
-						if (row - rowK <= 3)
-						{
-							if (row >= 2 && column <= 6)
-								noPerm.emplace_back(p - 15);
-							if (row >= 2 && column >= 1)
-								noPerm.emplace_back(p - 17);
-						}
-					}
-				}
-			}
-		}
-
-		//pawns
-
-		for (int i = 8; i < 16; i++)
-		{
-			if (bPieces[i].place != -1)
-			{
-				p = bPieces[i].place;						// p - position of piece that perhaps attacks king
-				row = bPieces[i].place / 8;
-				if (row - 2 == rowK || (row == rowK && row - 1 >= 0) || (row - 1 == rowK))
-				{
-					column = bPieces[i].place % 8;
-					if (column == columnK)
-					{
-						if (column >= 1)
-							noPerm.emplace_back(p - 1 - 8);
-						if (column <= 6)
-							noPerm.emplace_back(p + 1 - 8);
-					}
-					else if (column > columnK)
-					{
-						if (column - columnK <= 2)
-							noPerm.emplace_back(p - 1 - 8);
-
-					}
-					else
-					{
-						if (columnK - column <= 2)
-							noPerm.emplace_back(p + 1 - 8);
-					}
-
-				}
-			}
-		}
-
-		//king
-
-		p = bPieces[4].place;						// p - position of piece that perhaps attacks king
-		row = bPieces[4].place / 8;
-		column = bPieces[4].place % 8;
-		if (abs(columnK - column) > abs(rowK - row))
-			max = abs(columnK - column);
-		else
-			max = abs(rowK - row);
-		if (max == 2)
-		{
-			if (rowK - row == 2)					// checks if enemy king is 2 rows higer 
-			{
-				if (column == columnK)
-				{
-					if (column >= 1)
-						noPerm.emplace_back(p - 1 + 8);
-					noPerm.emplace_back(p + 8);
-					if (column <= 7)
-						noPerm.emplace_back(p + 1 + 8);
-				}
-				else if (abs(columnK - column) == 1)
-				{
-					noPerm.emplace_back(p - 8);
-					noPerm.emplace_back(m + 8);
-
-				}
-				else if (column < columnK)
-				{
-					noPerm.emplace_back(m - 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(m + 1 + 8);
-				}
-			}
-			else if (row - rowK == 2)				//checks if  enemy king is 2 rows lower
-			{
-				if (column == columnK)
-				{
-					if (column >= 1)
-						noPerm.emplace_back(p - 1 - 8);
-					noPerm.emplace_back(p - 8);
-					if (column <= 7)
-						noPerm.emplace_back(p + 1 - 8);
-				}
-				else if (abs(columnK - column) == 1)
-				{
-					noPerm.emplace_back(p - 8);
-					noPerm.emplace_back(m + 8);
-
-				}
-				else if (column < columnK)
-				{
-					noPerm.emplace_back(m - 1 - 8);
-				}
-				else
-				{
-					noPerm.emplace_back(m + 1 - 8);
-				}
-
-
-
-			}
-			else if (columnK - column == 2)
-			{
-				if (rowK == row)
-				{
-					if (row >= 1)
-						noPerm.emplace_back(p + 1 - 8);
-					noPerm.emplace_back(p + 1);
-					if (row <= 7)
-						noPerm.emplace_back(p + 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(p + 1);
-					noPerm.emplace_back(m - 1);
-				}
-			}
-			else if (column - columnK == 2)
-			{
-				if (rowK == row)
-				{
-					if (row >= 1)
-						noPerm.emplace_back(p - 1 - 8);
-					noPerm.emplace_back(p - 1);
-					if (row <= 7)
-						noPerm.emplace_back(p - 1 + 8);
-				}
-				else
-				{
-					noPerm.emplace_back(p - 1);
-					noPerm.emplace_back(m + 1);
-				}
-			}
-		}
-		}
-
-	if (check)
-	{
-		column = attacker1 % 8;
-		row = attacker1 / 8;
-		if (columnK == column)
-		{
-			if (m < attacker1 && rowK >= 1)
-				noPerm.emplace_back(m - 8);
-			else if (m > attacker1 && rowK <= 6)
-				noPerm.emplace_back(m + 8);
-
-		}
-		else if (rowK == row)
-		{
-			if (m < attacker1 && columnK >= 1)
-				noPerm.emplace_back(m - 1);
-			else if (m > attacker1 && columnK <= 6)
-				noPerm.emplace_back(m + 1);
-		}
-		else if (abs(columnK - column) == abs(rowK - row))
-		{
-			if (abs(m - attacker1) % 7 == 0)
-			{
-				if (m < attacker1 && columnK<=6 && rowK>=1)
-				{
-					noPerm.emplace_back(m - 7);
-				}
-				else if (m > attacker1 && columnK >= 1 && rowK <= 6)
-				{
-					noPerm.emplace_back(m + 7);
-				}
-			}
-			else
-			{
-				if (m < attacker1 && columnK >= 1 && rowK >= 1)
-				{
-					noPerm.emplace_back(m - 9);
-				}
-				else if (m > attacker1 && columnK <= 6 && rowK <= 6)
-				{
-					noPerm.emplace_back(m + 9);
-				}
-			}
-		}
-		if (doubleCheck)
-		{
-			column = attacker2 % 8;
-			row = attacker2 / 8;
-			if (columnK == column)
-			{
-				if (m < attacker2 && rowK >= 1)
-					noPerm.emplace_back(m - 8);
-				else if (m > attacker2 && rowK <= 6)
-					noPerm.emplace_back(m + 8);
-
-			}
-			else if (rowK == row)
-			{
-				if (m < attacker2 && columnK >= 1)
-					noPerm.emplace_back(m - 1);
-				else if (m > attacker2 && columnK <= 6)
-					noPerm.emplace_back(m + 1);
-			}
-			else if (abs(columnK - column) == abs(rowK - row))
-			{
-				if (abs(m - attacker2) % 7 == 0)
-				{
-					if (m < attacker2 && columnK <= 6 && rowK >= 1)
-					{
-						noPerm.emplace_back(m - 7);
-					}
-					else if (m > attacker2 && columnK >= 1 && rowK <= 6)
-					{
-						noPerm.emplace_back(m + 7);
-					}
-				}
-				else
-				{
-					if (m < attacker2 && columnK >= 1 && rowK >= 1)
-					{
-						noPerm.emplace_back(m - 9);
-					}
-					else if (m > attacker2 && columnK <= 6 && rowK <= 6)
-					{
-						noPerm.emplace_back(m + 9);
-					}
-				}
-			}
-		}
-
-	}
-
-	cout << "przed usunieciem" << endl;
-
-	for (int& i : noPerm)         //testing
-	{
-		cout << "blokuje: " << i << " ";
-	}
-	cout << endl;
-	for (auto it = noPerm.begin(); it != noPerm.end(); ) 
-	{
-		int i = *it;
-		column = i % 8;
-		row = i / 8;
-		if (abs(column - columnK) > 1 || abs(row - rowK) > 1) {
-			it = noPerm.erase(it);
-		}
-		else {
-			++it;
+			break;
 		}
 	}
-	cout << "Po usunieciu" << endl;
-	for (int& i : noPerm)         //testing
-	{
-		cout << "blokuje: " << i << " ";
+	for (int i = 1; i < boardSize - column; i++) {
+		if (squares[position + i].isTaken) {
+			if (squares[position + i].figure->player != player) {
+				piece = squares[position + i].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
 	}
-	cout << endl;
+	for (int i = 1; i <= row; i++) {
+		if (squares[position - i * 8].isTaken) {
+			if (squares[position - i * 8].figure->player != player) {
+				piece = squares[position - i * 8].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+	for (int i = 1; i < boardSize - row; i++) {
+		if (squares[position + i * 8].isTaken) {
+			if (squares[position + i * 8].figure->player != player) {
+				piece = squares[position + i * 8].figure->piece;
+				if (piece == 'r' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+	for (int i = 1; i <= min; i++) {
+		if (squares[position - i * 9].isTaken) {
+			if (squares[position - i * 9].figure->player != player) {
+				piece = squares[position - i * 9].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+
+	if (row < 7 - column)
+		min = row;
+	else min = 7 - column;
+	for (int i = 1; i <= min; i++) {
+		if (squares[position - i * 7].isTaken) {
+			if (squares[position - i * 7].figure->player != player) {
+				piece = squares[position - i * 7].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+
+	if (column < 7 - row)
+		min = column;
+	else min = 7 - row;
+
+	for (int i = 1; i <= min; i++) {
+		if (squares[position + i * 7].isTaken) {
+			if (squares[position + i * 7].figure->player != player) {
+				piece = squares[position + i * 7].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+
+	if (7 - column < 7 - row)
+		min = 7 - column;
+	else min = 7 - row;
+
+	for (int i = 1; i <= min; i++) {
+		if (squares[position + i * 9].isTaken) {
+			if (squares[position + i * 9].figure->player != player) {
+				piece = squares[position + i * 9].figure->piece;
+				if (piece == 'b' || piece == 'q') {
+					return true;
+				}
+			}
+			break;
+		}
+	}
+
+	if (column >= 2)
+	{
+		if (row >= 1)
+			if (squares[position - 2 - 8].isTaken == true)
+				if (squares[position - 2 - 8].figure->player != player && squares[position - 2 - 8].figure->piece == 'k')
+					return true;
+		if (7 - row >= 1)
+			if (squares[position - 2 + 8].isTaken == true)
+				if (squares[position - 2 + 8].figure->player != player && squares[position - 2 + 8].figure->piece == 'k')
+					return true;
+	}
+	if (7 - column >= 2)
+	{
+		if (row >= 1)
+			if (squares[position + 2 - 8].isTaken == true)
+				if (squares[position + 2 - 8].figure->player != player && squares[position + 2 - 8].figure->piece == 'k')
+					return true;
+		if (7 - row >= 1)
+			if (squares[position + 2 + 8].isTaken == true)
+				if (squares[position + 2 + 8].figure->player != player && squares[position + 2 + 8].figure->piece == 'k')
+					return true;
+	}
+	if (row >= 2)
+	{
+		if (column >= 1)
+			if (squares[position - 2 * 8 - 1].isTaken == true)
+				if (squares[position - 2 * 8 - 1].figure->player != player && squares[position - 2 * 8 - 1].figure->piece == 'k')
+					return true;
+		if (7 - column >= 1)
+			if (squares[position - 2 * 8 + 1].isTaken == true)
+				if (squares[position - 2 * 8 + 1].figure->player != player && squares[position - 2 * 8 + 1].figure->piece == 'k')
+					return true;
+	}
+	if (7 - row >= 2)
+	{
+		if (column >= 1)
+			if (squares[position + 2 * 8 - 1].isTaken == true)
+				if (squares[position + 2 * 8 - 1].figure->player != player && squares[position + 2 * 8 - 1].figure->piece == 'k')
+					return true;
+		if (7 - column >= 1)
+			if (squares[position + 2 * 8 + 1].isTaken == true)
+				if (squares[position + 2 * 8 + 1].figure->player != player && squares[position + 2 * 8 + 1].figure->piece == 'k')
+					return true;
+	}
+
+	if (column <= 6) {
+		if (squares[position - 7 + 14 * player].isTaken && squares[position - 7 + 14 * player].figure->piece == 'p' && squares[position - 7 + 14 * player].figure->player != player)
+			return true;
+	}
+	if (column >= 1) {
+		if (squares[position - 9 + 18 * player].isTaken && squares[position - 9 + 18 * player].figure->piece == 'p' && squares[position - 9 + 18 * player].figure->player != player)
+			return true;
+	}
+
+	return false;
 }
 
-void Game::stopdrag(RenderWindow& window, Event& event)
+void Game::AddSquareIndexToNoPermList(int position, int player) {
+	int column = position % 8;
+	int row = position / 8;
+	if (column > 0 && IsFieldCaptured(position - 1, player))
+		noPerm.emplace_back(position - 1);
+	if (column < boardSize - 1 && IsFieldCaptured(position + 1, player))
+		noPerm.emplace_back(position + 1);
+	if (row > 0 && IsFieldCaptured(position - 9, player))
+		noPerm.emplace_back(position - 9);
+	if (row > 0 && position - 8 < 64 && IsFieldCaptured(position - 8, player))
+		noPerm.emplace_back(position - 8);
+	if (row > 0 && IsFieldCaptured(position - 7, player))
+		noPerm.emplace_back(position - 7);
+	if (row < boardSize - 1 && IsFieldCaptured(position + 7, player))
+		noPerm.emplace_back(position + 7);
+	if (row < boardSize - 1 && IsFieldCaptured(position + 8, player))
+		noPerm.emplace_back(position + 8);
+	if (row < boardSize - 1 && IsFieldCaptured(position + 9, player))
+		noPerm.emplace_back(position + 9);
+}
+
+void Game::StopDragging(RenderWindow& window, Event& event)
 {	
 		
 	if(field!=nullptr && isDragging)
 	if (event.mouseButton.button == Mouse::Left)
 	{
 		isDragging = false;
-		int m = whichField(window, event);
-		cout << "m wynosi: " << m << endl;
-		if (squares[m].permission)
+		int clickedField = GetClickedField(window, event);
+		if (squares[clickedField].permission)
 		{
-			takeDown(m);
-			check = false;
-			attacker1 = 64;
-			doubleCheck = false;
-			isCheck(m);
+			OnCapturePiece(clickedField);
+			UpdateVariableProperties(clickedField);
+			squares[clickedField].figure->setPos(squares[clickedField].GetPosition());
+			isPromotion = IsPromotion(clickedField);	
 			noPerm.clear();
-			field->figure->setPos(squares[m].getPosition());        //set the piece in correct field
-			field->figure->place = m;
-			
-			//castling
-			if (field->figure->piece == 'K')          //version to update
-			{
-				if (m == 2 && LCB)
-				{
-					bPieces[0].setPos(squares[3].getPosition());
-					bPieces[0].place = 3;
-					squares[0].figure = nullptr;
-					squares[3].figure = &bPieces[0];
-					squares[0].isTaken = false;
-					squares[3].isTaken = true;
-				}
-				else if (m == 6 && RCB)
-				{
-					bPieces[7].setPos(squares[5].getPosition());
-					bPieces[7].place = 5;
-					squares[7].figure = nullptr;
-					squares[7].isTaken = false;
-					squares[5].figure = &bPieces[7];
-					squares[5].isTaken = true;
-				}
-				if (m == 58 && LCW)
-				{
-					wPieces[0].setPos(squares[59].getPosition());
-					wPieces[0].place = 59;
-					squares[56].figure = nullptr;
-					squares[56].isTaken = false;
-					squares[59].figure = &wPieces[0];
-					squares[59].isTaken = true;
-				}
-				else if (m == 62 && RCW)
-				{
-					wPieces[7].setPos(squares[61].getPosition());
-					wPieces[7].place = 61;
-					squares[63].figure = nullptr;
-					squares[63].isTaken = false;
-					squares[61].figure = &wPieces[7];
-					squares[61].isTaken = true;
-				}
-
-
-				if (field->figure->player == 0)
-				{
-					LCW = false;
-					RCW = false;
-				}
-				else
-				{
-					LCB = false;
-					RCB = false;
-				}
-			}														//castling																//castling														//castling
-			if (field->figure->piece == 'r' && (LCB || RCB) && field->figure->player == 1)           //check if rocks have been moved before do castling
-			{
-				if (field == &squares[0])
-					LCB = false;
-				if (field == &squares[7])
-					RCB = false;
-			}
-			if (field->figure->piece == 'r' && (LCW || RCW) && field->figure->player == 0)
-			{
-				if (field == &squares[56])
-					LCW = false;
-				if (field == &squares[63])
-					RCW = false;
-			}
-			
-
-			squares[m].figure = field->figure;
-			squares[m].isTaken = true;
-			field->isTaken = false;
+			Castle(clickedField);
+			ResetSquaresPermissionAndClearLists();
 			field->figure = nullptr;
-			
-			for (unsigned& move : moves)
-			{
-				squares[move].permission = false;
-			}
-
-			if (!enemies.empty())
-			{
-				for (unsigned& e : enemies)
-				{
-					squares[e].permission = false;
-
-				}
-				enemies.clear();
-			}
-			moves.clear();
 			field = nullptr;
-			if (!blackMove)
-				blackMove = 1;
-			else
-				blackMove = 0;
-
+			if (!isPromotion) {
+				IsCheck();
+				TogglePlayerTurn();
+			}
+			else promotionField = clickedField;
 		}
 		else
-			field->figure->setPos(field->getPosition());
+			field->figure->setPos(field->GetPosition());
 	}
 }
 
-void Game::update(RenderWindow& window)
+bool Game::IsPromotion(int clickedField) {
+	int firstRow = 7;
+	int lastRow = 56;
+	return squares[clickedField].figure->piece == 'p' && (clickedField <= firstRow || clickedField >= lastRow);
+}
+
+void Game::OnPawnPromotion(RenderWindow& window, Event& event) {
+	char pieceLetter = pawnPromotion.HandlePromotion(window, event, blackMove);
+	if (pieceLetter != 'n') {
+		squares[promotionField].figure->piece = pieceLetter;
+		squares[promotionField].figure->setTexture();
+		isPromotion = false;
+		cout << "Promocja na " << pieceLetter;
+		IsCheck();
+		TogglePlayerTurn();
+	}
+}
+
+void Game::UpdateVariableProperties(int clickedField) {
+	check = false;
+	doubleCheck = false;
+	attacker1 = 64;
+	squares[clickedField].figure = field->figure;
+	squares[clickedField].figure->place = clickedField;
+	squares[clickedField].isTaken = true;
+	field->isTaken = false;
+}
+
+void Game::TogglePlayerTurn() {
+	if (!blackMove)
+		blackMove = 1;
+	else
+		blackMove = 0;
+}
+
+void Game::ResetSquaresPermissionAndClearLists() {
+	for (unsigned& move : moves)
+		{
+			squares[move].permission = false;
+		}
+
+	if (!enemies.empty())
+	{
+		for (unsigned& e : enemies)
+		{
+			squares[e].permission = false;
+
+		}
+		enemies.clear();
+	}
+	moves.clear();
+}
+
+void Game::Castle(int clickedField) {
+	if (field->figure->piece == 'K')
+	{
+		if (clickedField == 2 && LeftCastlingBlack)
+		{
+			bPieces[0].setPos(squares[3].GetPosition());
+			bPieces[0].place = 3;
+			squares[0].figure = nullptr;
+			squares[3].figure = &bPieces[0];
+			squares[0].isTaken = false;
+			squares[3].isTaken = true;
+		}
+		else if (clickedField == 6 && RightCastlingBlack)
+		{
+			bPieces[7].setPos(squares[5].GetPosition());
+			bPieces[7].place = 5;
+			squares[7].figure = nullptr;
+			squares[7].isTaken = false;
+			squares[5].figure = &bPieces[7];
+			squares[5].isTaken = true;
+		}
+		if (clickedField == 58 && LeftCastlingWhite)
+		{
+			wPieces[0].setPos(squares[59].GetPosition());
+			wPieces[0].place = 59;
+			squares[56].figure = nullptr;
+			squares[56].isTaken = false;
+			squares[59].figure = &wPieces[0];
+			squares[59].isTaken = true;
+		}
+		else if (clickedField == 62 && RightCastlingWhite)
+		{
+			wPieces[7].setPos(squares[61].GetPosition());
+			wPieces[7].place = 61;
+			squares[63].figure = nullptr;
+			squares[63].isTaken = false;
+			squares[61].figure = &wPieces[7];
+			squares[61].isTaken = true;
+		}
+
+
+		if (field->figure->player == 0)
+		{
+			LeftCastlingWhite = false;
+			RightCastlingWhite = false;
+		}
+		else
+		{
+			LeftCastlingBlack = false;
+			RightCastlingBlack = false;
+		}
+	}														
+	if (field->figure->piece == 'r' && (LeftCastlingBlack || RightCastlingBlack) && field->figure->player == 1)
+	{
+		if (field == &squares[0])
+			LeftCastlingBlack = false;
+		if (field == &squares[7])
+			RightCastlingBlack = false;
+	}
+	if (field->figure->piece == 'r' && (LeftCastlingWhite || RightCastlingWhite) && field->figure->player == 0)
+	{
+		if (field == &squares[56])
+			LeftCastlingWhite = false;
+		if (field == &squares[63])
+			RightCastlingWhite = false;
+	}
+}
+
+void Game::Update(RenderWindow& window)
 {	
 	float i=1.f;
 	for (pieces* p : wDeaths)
@@ -3719,8 +1545,3 @@ void Game::update(RenderWindow& window)
 	}
 
 }
-
-
-
-
-

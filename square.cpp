@@ -24,12 +24,12 @@ square::square(float x, float y)
 	
 }
 
-void square::changeColor()
+void square::ChangeColor()
 {
 	shape.setFillColor(Color::White);
 }
 
-Vector2f square::getPosition()
+Vector2f square::GetPosition()
 {
 
 	return shape.getPosition();

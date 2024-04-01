@@ -5,7 +5,7 @@ using namespace std;
 using namespace sf;
 
 
-Texture Textures::loadTexture(string file)
+Texture Graphic::LoadTexture(string file)
 {
 	Texture temp;
 	if(!temp.loadFromFile("graphics/"+file))
@@ -14,15 +14,15 @@ Texture Textures::loadTexture(string file)
 	return temp;
 }
 
-Texture Textures::wKing = Textures::loadTexture("w_king.png");
-Texture Textures::wQueen = Textures::loadTexture("w_Queen.png");
-Texture Textures::wBishop = Textures::loadTexture("w_bishop.png");
-Texture Textures::wKnight = Textures::loadTexture("w_knight.png");
-Texture Textures::wPawn = Textures::loadTexture("w_pawn.png");
-Texture Textures::wRock = Textures::loadTexture("w_rock.png");
-Texture Textures::bKing = Textures::loadTexture("b_king.png");
-Texture Textures::bQueen = Textures::loadTexture("b_queen.png");
-Texture Textures::bBishop = Textures::loadTexture("b_bishop.png");
-Texture Textures::bKnight = Textures::loadTexture("b_knight.png");
-Texture Textures::bRock = Textures::loadTexture("b_rock.png");
-Texture Textures::bPawn = Textures::loadTexture("b_pawn.png");
+Texture Graphic::wKing = Graphic::LoadTexture("w_king.png");
+Texture Graphic::wQueen = Graphic::LoadTexture("w_Queen.png");
+Texture Graphic::wBishop = Graphic::LoadTexture("w_bishop.png");
+Texture Graphic::wKnight = Graphic::LoadTexture("w_knight.png");
+Texture Graphic::wPawn = Graphic::LoadTexture("w_pawn.png");
+Texture Graphic::wRock = Graphic::LoadTexture("w_rock.png");
+Texture Graphic::bKing = Graphic::LoadTexture("b_king.png");
+Texture Graphic::bQueen = Graphic::LoadTexture("b_queen.png");
+Texture Graphic::bBishop = Graphic::LoadTexture("b_bishop.png");
+Texture Graphic::bKnight = Graphic::LoadTexture("b_knight.png");
+Texture Graphic::bRock = Graphic::LoadTexture("b_rock.png");
+Texture Graphic::bPawn = Graphic::LoadTexture("b_pawn.png");

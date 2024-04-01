@@ -12,8 +12,8 @@ public:
 	square(float x, float y);
 	square() = delete;
 	~square() = default;
-	void changeColor();
-	Vector2f getPosition();
+	void ChangeColor();
+	Vector2f GetPosition();
 	bool isTaken = false;
 	pieces* figure=nullptr;
 	friend class Game;

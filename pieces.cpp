@@ -17,22 +17,22 @@ void pieces::setTexture()
 	switch (piece)
 	{
 	case 'p':
-		figure.setTexture(player ? Textures::bPawn : Textures::wPawn);
+		figure.setTexture(player ? Graphic::bPawn : Graphic::wPawn);
 		break;
 	case 'r':
-		figure.setTexture(player ? Textures::bRock : Textures::wRock);
+		figure.setTexture(player ? Graphic::bRock : Graphic::wRock);
 		break;
 	case 'k':
-		figure.setTexture(player ? Textures::bKnight : Textures::wKnight);
+		figure.setTexture(player ? Graphic::bKnight : Graphic::wKnight);
 		break;
 	case 'b':
-		figure.setTexture(player ? Textures::bBishop : Textures::wBishop);
+		figure.setTexture(player ? Graphic::bBishop : Graphic::wBishop);
 		break;
 	case 'q':
-		figure.setTexture(player ? Textures::bQueen : Textures::wQueen);
+		figure.setTexture(player ? Graphic::bQueen : Graphic::wQueen);
 		break;
 	case 'K':
-		figure.setTexture(player ? Textures::bKing : Textures::wKing);
+		figure.setTexture(player ? Graphic::bKing : Graphic::wKing);
 		break;
 	default:
 		cout << "this kind of piece doesn't exist";
@@ -45,8 +45,6 @@ void pieces::scale(Vector2f dim)
 {
 	figure.setScale(dim);
 }
-
-
 
 void pieces::setPieces(char letter, int player, int place)
 {
